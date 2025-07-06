@@ -24,11 +24,12 @@ Chrome Extension (Manifest V3) for debugging Google Tag Manager Consent Mode imp
 - **Tag Mapping**: Connect tags to consent categories ✅
 - **CMP Detection**: Basic OneTrust/Cookiebot detection ✅
 - **IAB TCF Framework**: Industry standard compliance support ✅
+- **Smart Simulator**: Auto-disable when consent mode unavailable ✅
 
 ### User Interface
 - **Modular Popup**: Tab-based interface with IIFE modules ✅
-- **Tag List**: Filtering and status display ✅
-- **Consent Simulator**: Preset configurations and manual controls ✅
+- **Tag List**: Multi-container support with real-time filtering ✅
+- **Consent Simulator**: Smart controls that auto-disable when consent mode unavailable ✅
 - **Event Logger**: DataLayer monitoring and export ✅
 - **QA Panel**: Basic compliance testing ✅
 - **Performance Dashboard**: Real-time metrics and monitoring ✅
@@ -127,6 +128,8 @@ Focus: Chrome Web Store preparation, community building, documentation
 - Architecture validation prevents communication breakdowns
 - Multi-container GTM detection is accurate
 - Performance monitoring provides real-time insights
+- Consent simulator intelligently disables when consent mode unavailable
+- Tags tab fully functional with multi-container support
 
 ### Architecture Decisions
 - IIFE modules for popup components

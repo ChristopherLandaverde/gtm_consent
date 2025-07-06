@@ -157,6 +157,8 @@ if (window.ConsentInspector) {
     },
     
     getCurrentConsentState: function() {
+      console.log('🔍 getCurrentConsentState called');
+      
       const defaultState = {
         analytics_storage: 'granted',
         ad_storage: 'granted',
@@ -165,16 +167,37 @@ if (window.ConsentInspector) {
         security_storage: 'granted'
       };
       
+      // Check if GTM is in consent mode
+      if (window.google_tag_manager) {
+        console.log('🔍 GTM containers found:', Object.keys(window.google_tag_manager));
+        
+        // Try to get consent state from GTM directly
+        for (const containerId in window.google_tag_manager) {
+          const container = window.google_tag_manager[containerId];
+          if (container && container.dataLayer) {
+            console.log(`🔍 Container ${containerId} dataLayer:`, container.dataLayer);
+          }
+        }
+      }
+      
       if (window.dataLayer && Array.isArray(window.dataLayer)) {
+        console.log('🔍 Checking dataLayer for consent events...');
+        const consentEvents = window.dataLayer.filter(item => 
+          Array.isArray(item) && item[0] === 'consent'
+        );
+        console.log('🔍 Found consent events:', consentEvents);
+        
         for (let i = window.dataLayer.length - 1; i >= 0; i--) {
           const item = window.dataLayer[i];
           if (Array.isArray(item) && item[0] === 'consent' && 
               (item[1] === 'default' || item[1] === 'update') && item[2]) {
+            console.log('🔍 Found consent state in dataLayer:', item[2]);
             return { ...defaultState, ...item[2] };
           }
         }
       }
       
+      console.log('🔍 No consent events found, returning default state:', defaultState);
       return defaultState;
     },
     
@@ -235,20 +258,32 @@ if (window.ConsentInspector) {
     },
     
     updateConsent: function(settings) {
+      console.log('🔒 updateConsent called with settings:', settings);
       
       try {
         if (window.gtag && typeof window.gtag === 'function') {
+          console.log('🔒 Using gtag method');
           window.gtag('consent', 'update', settings);
+          
+          // Check if it was actually applied
+          setTimeout(() => {
+            const recentEvents = window.dataLayer ? window.dataLayer.slice(-5) : [];
+            console.log('🔒 Recent dataLayer events after gtag call:', recentEvents);
+          }, 100);
+          
           return { success: true, method: 'gtag' };
         }
         
         if (window.dataLayer && Array.isArray(window.dataLayer)) {
+          console.log('🔒 Using dataLayer method');
           window.dataLayer.push(['consent', 'update', settings]);
           return { success: true, method: 'dataLayer' };
         }
         
+        console.log('🔒 No consent mechanism available');
         return { success: false, error: 'No consent mechanism available' };
       } catch (error) {
+        console.error('🔒 Error in updateConsent:', error);
         return { success: false, error: error.message };
       }
     },

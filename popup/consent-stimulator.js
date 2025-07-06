@@ -78,13 +78,20 @@ const ConsentSimulator = (function() {
       if (result && result.consentState) {
         console.log('📊 Loading current consent state:', result.consentState);
         updateConsentToggles(result.consentState);
+        
+        // Check if consent mode is actually working
+        checkConsentModeStatus(result);
       } else {
         console.log('⚠️ No consent state available, using privacy-first defaults');
         const defaultPreset = CONSENT_PRESETS['functional-only'];
         updateConsentToggles(defaultPreset.settings);
+        
+        // Show that consent mode isn't available
+        showConsentModeStatus(false);
       }
     } catch (error) {
       console.error('❌ Error loading consent state:', error);
+      showConsentModeStatus(false);
     }
   }
 
@@ -256,6 +263,138 @@ const ConsentSimulator = (function() {
           window.UIUtils.setButtonLoading(applyBtn, false);
         }, 2000);
       }
+    }
+  }
+
+  // NEW: Check if consent mode is actually working
+  function checkConsentModeStatus(gtmResult) {
+    const hasConsentMode = gtmResult.hasConsentMode;
+    const hasConsentEvents = gtmResult.consentState && 
+      Object.values(gtmResult.consentState).some(value => value !== 'granted');
+    
+    // If GTM says it has consent mode but all values are 'granted', 
+    // it might not actually be working
+    const consentModeWorking = hasConsentMode && hasConsentEvents;
+    
+    showConsentModeStatus(consentModeWorking);
+  }
+
+  // NEW: Display consent mode status to user
+  function showConsentModeStatus(isWorking) {
+    // Find or create status display
+    let statusDisplay = document.getElementById('consentModeStatus');
+    if (!statusDisplay) {
+      statusDisplay = document.createElement('div');
+      statusDisplay.id = 'consentModeStatus';
+      statusDisplay.style.cssText = `
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        border-left: 4px solid;
+      `;
+      
+      // Insert at the top of the consent simulator
+      const consentContainer = document.querySelector('#consent-tab');
+      if (consentContainer) {
+        const firstChild = consentContainer.firstChild;
+        consentContainer.insertBefore(statusDisplay, firstChild);
+      }
+    }
+    
+    if (isWorking) {
+      statusDisplay.innerHTML = `
+        <strong>✅ Consent Mode Active</strong><br>
+        This website uses Google's Consent Mode. Your consent changes will affect tag firing.
+      `;
+      statusDisplay.style.cssText = `
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        border-left: 4px solid #28a745;
+        background-color: #d4edda;
+        color: #155724;
+      `;
+      
+      // Enable all simulator controls
+      enableSimulatorControls(true);
+    } else {
+      statusDisplay.innerHTML = `
+        <strong>❌ Consent Mode Not Available</strong><br>
+        This website doesn't use Google's Consent Mode. The consent simulator is disabled because it won't have any effect on tag firing.
+      `;
+      statusDisplay.style.cssText = `
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        border-left: 4px solid #dc3545;
+        background-color: #f8d7da;
+        color: #721c24;
+      `;
+      
+      // Disable all simulator controls
+      enableSimulatorControls(false);
+    }
+  }
+
+  // NEW: Enable/disable simulator controls based on consent mode availability
+  function enableSimulatorControls(enabled) {
+    // Disable/enable all consent select dropdowns
+    const consentSelects = document.querySelectorAll('#consent-tab select[id$="_storage"]');
+    consentSelects.forEach(select => {
+      select.disabled = !enabled;
+      select.style.opacity = enabled ? '1' : '0.5';
+      select.style.cursor = enabled ? 'pointer' : 'not-allowed';
+    });
+    
+    // Disable/enable preset buttons
+    const presetButtons = document.querySelectorAll('#consent-tab .dropdown-item[data-preset]');
+    presetButtons.forEach(button => {
+      button.disabled = !enabled;
+      button.style.opacity = enabled ? '1' : '0.5';
+      button.style.cursor = enabled ? 'pointer' : 'not-allowed';
+    });
+    
+    // Disable/enable apply button
+    const applyButton = document.getElementById('applyConsent');
+    if (applyButton) {
+      applyButton.disabled = !enabled;
+      applyButton.style.opacity = enabled ? '1' : '0.5';
+      applyButton.style.cursor = enabled ? 'pointer' : 'not-allowed';
+      
+      if (!enabled) {
+        applyButton.textContent = '❌ Simulator Disabled';
+      } else {
+        applyButton.textContent = '⚡ Apply Settings';
+      }
+    }
+    
+    // Add visual overlay to show disabled state
+    let overlay = document.getElementById('consentSimulatorOverlay');
+    if (!enabled && !overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'consentSimulatorOverlay';
+      overlay.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        z-index: 10;
+        pointer-events: none;
+        border-radius: 4px;
+      `;
+      
+      const consentContainer = document.querySelector('#consent-tab');
+      if (consentContainer) {
+        consentContainer.style.position = 'relative';
+        consentContainer.appendChild(overlay);
+      }
+    } else if (enabled && overlay) {
+      overlay.remove();
     }
   }
 
