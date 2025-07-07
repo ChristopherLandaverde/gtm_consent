@@ -1812,3 +1812,38 @@ footer {
   box-shadow: var(--shadow-sm);
 }
 
+/* Dark mode alert support */
+@media (prefers-color-scheme: dark) {
+  .alert-item.error {
+    background: rgba(239, 68, 68, 0.1);
+    border-left-color: var(--color-error);
+  }
+  
+  .alert-item.warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-left-color: var(--color-warning);
+  }
+  
+  .alert-item.info {
+    background: rgba(59, 130, 246, 0.1);
+    border-left-color: var(--color-info);
+  }
+  
+  .alert-text {
+    color: var(--color-text-primary) !important;
+    font-weight: var(--font-weight-medium);
+  }
+  
+  .alert-details {
+    color: var(--color-text-secondary) !important;
+  }
+  
+  .alert-time {
+    color: var(--color-text-tertiary) !important;
+  }
+  
+  .alert-item:hover {
+    background: var(--color-gray-50) !important;
+  }
+}
+

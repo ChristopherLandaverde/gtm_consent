@@ -17,8 +17,8 @@ const MonitoringModule = (function() {
     // Set up event listeners
     setupEventListeners();
     
-    // Initial load
-    updateDisplay();
+    // Load initial data
+    updateMonitoringData();
   }
 
   function setupEventListeners() {
@@ -89,29 +89,41 @@ const MonitoringModule = (function() {
 
   async function updateMonitoringData() {
     try {
+      console.log('🔍 Updating monitoring data...');
+      
       // Get current GTM status
       const gtmStatus = await ContentScriptInterface.sendMessage('checkGTM');
+      console.log('GTM Status:', gtmStatus);
       
       // Get current tag status
       const tagStatus = await ContentScriptInterface.sendMessage('getTagStatus');
+      console.log('Tag Status:', tagStatus);
       
       // Get current consent state
       const consentState = await ContentScriptInterface.sendMessage('getCurrentConsentState');
+      console.log('Consent State:', consentState);
       
-      // Update data
+      // Check for alerts first
+      checkForAlerts(gtmStatus, tagStatus, consentState);
+      
+      // Update data after alerts are processed
+      const tagCount = Array.isArray(tagStatus) ? tagStatus.length : 0;
+      const alertCount = currentAlerts.length;
+      
+      console.log(`📊 Tag count: ${tagCount}, Alert count: ${alertCount}`);
+      
       currentData = {
         status: isMonitoring ? 'Active' : 'Inactive',
         cmp: detectCMP(),
-        tags: Array.isArray(tagStatus) ? tagStatus.length : 0,
-        alerts: currentAlerts.length,
+        tags: tagCount,
+        alerts: alertCount,
         lastUpdate: new Date(),
         gtmStatus: gtmStatus,
         tagStatus: tagStatus,
         consentState: consentState
       };
       
-      // Check for alerts
-      checkForAlerts(gtmStatus, tagStatus, consentState);
+      console.log('Current Data:', currentData);
       
       // Update display
       updateDisplay();
@@ -137,12 +149,22 @@ const MonitoringModule = (function() {
     
     // Check GTM status
     if (!gtmStatus || !gtmStatus.hasGTM) {
-      newAlerts.push({ message: 'GTM not detected on page', type: 'error', severity: 'high' });
+      newAlerts.push({ 
+        message: 'GTM not detected on page', 
+        type: 'error', 
+        severity: 'high',
+        timestamp: new Date()
+      });
     }
     
     // Check consent mode
     if (gtmStatus && gtmStatus.hasGTM && !gtmStatus.hasConsentMode) {
-      newAlerts.push({ message: 'GTM detected but Consent Mode not enabled', type: 'warning', severity: 'medium' });
+      newAlerts.push({ 
+        message: 'GTM detected but Consent Mode not enabled', 
+        type: 'warning', 
+        severity: 'medium',
+        timestamp: new Date()
+      });
     }
     
     // Check tag blocking
@@ -153,7 +175,8 @@ const MonitoringModule = (function() {
           message: `${blockedTags.length} tags are blocked due to consent`, 
           type: 'info', 
           severity: 'low',
-          details: blockedTags.map(tag => tag.name).join(', ')
+          details: blockedTags.map(tag => tag.name).join(', '),
+          timestamp: new Date()
         });
       }
     }
@@ -166,7 +189,8 @@ const MonitoringModule = (function() {
           message: `${deniedConsents.length} consent categories are denied`, 
           type: 'warning', 
           severity: 'medium',
-          details: deniedConsents.map(([key]) => key).join(', ')
+          details: deniedConsents.map(([key]) => key).join(', '),
+          timestamp: new Date()
         });
       }
     }
@@ -222,16 +246,33 @@ const MonitoringModule = (function() {
     
     alertsContainer.style.display = 'block';
     
-    alertsList.innerHTML = currentAlerts.map(alert => `
-      <div class="alert-item ${alert.type}">
-        <div class="alert-severity ${alert.severity}">${getSeverityIcon(alert.severity)}</div>
-        <div class="alert-message">
-          <div class="alert-text">${alert.message}</div>
-          ${alert.details ? `<div class="alert-details">${alert.details}</div>` : ''}
-          <div class="alert-time">${alert.timestamp.toLocaleTimeString()}</div>
+    alertsList.innerHTML = currentAlerts.map(alert => {
+      // Ensure alert has required properties with fallbacks
+      const message = alert.message || 'Unknown alert';
+      const type = alert.type || 'info';
+      const severity = alert.severity || 'low';
+      const details = alert.details || '';
+      
+      // Handle timestamp safely
+      let timestamp;
+      try {
+        timestamp = alert.timestamp ? alert.timestamp.toLocaleTimeString() : new Date().toLocaleTimeString();
+      } catch (error) {
+        console.warn('⚠️ Error formatting timestamp:', error);
+        timestamp = new Date().toLocaleTimeString();
+      }
+      
+      return `
+        <div class="alert-item ${type}">
+          <div class="alert-severity ${severity}">${getSeverityIcon(severity)}</div>
+          <div class="alert-message">
+            <div class="alert-text">${message}</div>
+            ${details ? `<div class="alert-details">${details}</div>` : ''}
+            <div class="alert-time">${timestamp}</div>
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   function getSeverityIcon(severity) {
@@ -275,6 +316,8 @@ const MonitoringModule = (function() {
   }
 
   function updateDisplay() {
+    console.log('🎨 Updating display with data:', currentData);
+    
     // Update status values
     const statusEl = document.getElementById('monitoringStatusValue');
     const cmpEl = document.getElementById('cmpStatusValue');
@@ -285,6 +328,8 @@ const MonitoringModule = (function() {
     if (cmpEl) cmpEl.textContent = currentData.cmp;
     if (tagsEl) tagsEl.textContent = currentData.tags;
     if (alertsEl) alertsEl.textContent = currentData.alerts;
+    
+    console.log(`📱 UI Elements - Status: ${currentData.status}, CMP: ${currentData.cmp}, Tags: ${currentData.tags}, Alerts: ${currentData.alerts}`);
     
     // Update colors based on status
     if (statusEl) {
