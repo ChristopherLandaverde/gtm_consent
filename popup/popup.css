@@ -1711,139 +1711,104 @@ footer {
   position: relative;
 }
 
-.trigger-header,
-.variable-header,
-.mapping-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-3);
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--color-border-secondary);
-}
 
-.trigger-name,
-.variable-name,
-.mapping-name {
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
-}
 
-.trigger-type,
-.variable-type,
-.mapping-type {
-  font-size: var(--font-size-xs);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  font-weight: var(--font-weight-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Trigger type styles */
-.trigger-type.page-view {
+/* Variable type styles */
+.event-type.datalayer {
   background: var(--color-info-light);
   color: var(--color-info);
 }
 
-.trigger-type.custom-event {
+.event-type.config {
   background: var(--color-primary-light);
   color: var(--color-primary);
 }
 
-.trigger-type.consent {
+.event-type.custom {
   background: var(--color-warning-light);
   color: var(--color-warning);
 }
 
-.trigger-type.e-commerce {
+.event-type.measurement {
   background: var(--color-success-light);
   color: var(--color-success);
 }
 
-.trigger-type.user-engagement {
+.event-type.consent {
   background: var(--color-purple-light);
   color: var(--color-purple);
 }
 
-.trigger-type.user-interaction {
+.event-type.mapping {
   background: var(--color-orange-light);
   color: var(--color-orange);
 }
 
-.trigger-details,
-.variable-details,
-.mapping-details {
-  margin-bottom: var(--space-3);
-}
-
-.trigger-description {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-2);
-  line-height: var(--line-height-relaxed);
-}
-
-.trigger-meta {
-  display: flex;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
-}
-
-.trigger-source,
-.trigger-index,
-.trigger-time {
-  background: var(--color-gray-100);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
-}
-
-.trigger-consent {
-  background: var(--color-gray-50);
-  border: 1px solid var(--color-border-secondary);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--font-size-xs);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.consent-label {
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
-}
-
-.consent-type {
+/* Consent badge */
+.consent-badge {
   background: var(--color-primary-light);
   color: var(--color-primary);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
-  text-transform: capitalize;
+  display: inline-block;
+  margin-top: var(--space-1);
 }
 
-.trigger-consent.analytics_storage {
-  border-left: 3px solid var(--color-info);
+/* ===== TRIGGERS & VARIABLES TAB ===== */
+.analysis-overview {
+  margin-bottom: var(--space-6);
 }
 
-.trigger-consent.ad_storage {
-  border-left: 3px solid var(--color-warning);
+.analysis-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
 }
 
-.trigger-consent.functionality_storage {
-  border-left: 3px solid var(--color-success);
+.section {
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border-primary);
+  box-shadow: var(--shadow-sm);
 }
 
-.trigger-consent.personalization_storage {
-  border-left: 3px solid var(--color-purple);
+.section h3 {
+  margin-bottom: var(--space-4);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
 }
 
-.trigger-consent.security_storage {
-  border-left: 3px solid var(--color-error);
+.trigger-list,
+.variable-list,
+.mapping-list {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Use event-item styles for all trigger/variable/mapping items */
+.trigger-list .event-item,
+.variable-list .event-item,
+.mapping-list .event-item {
+  padding: var(--space-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-secondary);
+  transition: var(--transition-fast);
+}
+
+.trigger-list .event-item:hover,
+.variable-list .event-item:hover,
+.mapping-list .event-item:hover {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-border-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 

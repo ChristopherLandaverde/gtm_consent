@@ -90,30 +90,21 @@ const TriggersVarsModule = (function() {
   function renderTriggers(triggers) {
     if (!triggerList) return;
     if (!triggers || triggers.length === 0) {
-      triggerList.innerHTML = '<div class="trigger-item empty-state">No triggers detected...</div>';
+      triggerList.innerHTML = '<div class="event-item empty-state">No triggers detected...</div>';
       return;
     }
     const filteredTriggers = filterTriggers(triggers, currentFilters.triggers);
     triggerList.innerHTML = filteredTriggers.map(trigger => `
-      <div class="trigger-item">
-        <div class="trigger-header">
-          <span class="trigger-name">${escapeHtml(trigger.name)}</span>
-          <span class="trigger-type ${trigger.type}">${getTriggerTypeLabel(trigger.type)}</span>
+      <div class="event-item">
+        <div class="event-header">
+          <span class="event-time">[${trigger.dataLayerIndex !== undefined ? `Index: ${trigger.dataLayerIndex}` : 'N/A'}]</span>
+          <span class="event-type ${trigger.type}">${getTriggerTypeLabel(trigger.type)}</span>
         </div>
-        <div class="trigger-details">
-          ${trigger.description ? `<div class="trigger-description">${escapeHtml(trigger.description)}</div>` : ''}
-          <div class="trigger-meta">
-            <span class="trigger-source">Source: ${escapeHtml(trigger.source)}</span>
-            ${trigger.dataLayerIndex !== undefined ? `<span class="trigger-index">Index: ${trigger.dataLayerIndex}</span>` : ''}
-            ${trigger.timestamp ? `<span class="trigger-time">${new Date(trigger.timestamp).toLocaleTimeString()}</span>` : ''}
-          </div>
+        <div class="event-detail">
+          <strong>${escapeHtml(trigger.name)}</strong>
+          ${trigger.description ? `<br>${escapeHtml(trigger.description)}` : ''}
+          ${trigger.consentType ? `<br><span class="consent-badge">Consent: ${trigger.consentType.replace('_', ' ')}</span>` : ''}
         </div>
-        ${trigger.consentType ? `
-          <div class="trigger-consent ${trigger.consentType}">
-            <span class="consent-label">Consent Required:</span>
-            <span class="consent-type">${trigger.consentType.replace('_', ' ')}</span>
-          </div>
-        ` : ''}
       </div>
     `).join('');
   }
@@ -133,44 +124,52 @@ const TriggersVarsModule = (function() {
   function renderVariables(variables) {
     if (!variableList) return;
     if (!variables || variables.length === 0) {
-      variableList.innerHTML = '<div class="variable-item empty-state">No variables detected...</div>';
+      variableList.innerHTML = '<div class="event-item empty-state">No variables detected...</div>';
       return;
     }
     const filteredVariables = filterVariables(variables, currentFilters.variables);
     variableList.innerHTML = filteredVariables.map(variable => `
-      <div class="variable-item">
-        <div class="variable-header">
-          <span class="variable-name">${escapeHtml(variable.name)}</span>
-          <span class="variable-type">${escapeHtml(variable.type || 'unknown')}</span>
+      <div class="event-item">
+        <div class="event-header">
+          <span class="event-time">[${variable.dataLayerIndex !== undefined ? `Index: ${variable.dataLayerIndex}` : variable.container || 'N/A'}]</span>
+          <span class="event-type ${variable.type}">${getVariableTypeLabel(variable.type)}</span>
         </div>
-        <div class="variable-details">
-          <strong>Source:</strong> ${escapeHtml(variable.source || 'unknown')}<br>
-          <strong>Data Type:</strong> ${escapeHtml(variable.dataType || 'unknown')}<br>
-          ${variable.container ? `<strong>Container:</strong> ${escapeHtml(variable.container)}<br>` : ''}
-          ${variable.dataLayerIndex !== undefined ? `<strong>DataLayer Index:</strong> ${variable.dataLayerIndex}<br>` : ''}
-        </div>
-        <div class="variable-value">
-          <strong>Value:</strong> ${escapeHtml(variable.value || 'N/A')}
+        <div class="event-detail">
+          <strong>${escapeHtml(variable.name)}</strong>
+          <br>Value: ${escapeHtml(variable.value || 'N/A')}
+          ${variable.source ? `<br>Source: ${escapeHtml(variable.source)}` : ''}
         </div>
       </div>
     `).join('');
   }
 
+  function getVariableTypeLabel(type) {
+    const labels = {
+      'datalayer': 'DataLayer',
+      'config': 'Config',
+      'custom': 'Custom',
+      'measurement': 'Measurement',
+      'consent': 'Consent'
+    };
+    return labels[type] || type;
+  }
+
   function renderMappings(mappings) {
     if (!mappingList) return;
     if (!mappings || mappings.length === 0) {
-      mappingList.innerHTML = '<div class="mapping-item empty-state">No tag-trigger mappings detected...</div>';
+      mappingList.innerHTML = '<div class="event-item empty-state">No tag-trigger mappings detected...</div>';
       return;
     }
     mappingList.innerHTML = mappings.map(mapping => `
-      <div class="mapping-item">
-        <div class="mapping-header">
-          <span class="mapping-name">Tag-Trigger Mapping</span>
-          <span class="mapping-type">${escapeHtml(mapping.container || 'unknown')}</span>
+      <div class="event-item">
+        <div class="event-header">
+          <span class="event-time">[${mapping.container || 'GTM'}]</span>
+          <span class="event-type mapping">Mapping</span>
         </div>
-        <div class="mapping-details">
-          <span class="mapping-tag">${escapeHtml(mapping.tag || 'Unknown Tag')}</span>
-          <span class="mapping-trigger">${escapeHtml(mapping.trigger || 'Unknown Trigger')}</span>
+        <div class="event-detail">
+          <strong>Tag:</strong> ${escapeHtml(mapping.tag || 'Unknown Tag')}
+          <br><strong>Trigger:</strong> ${escapeHtml(mapping.trigger || 'Unknown Trigger')}
+          ${mapping.consentType ? `<br><span class="consent-badge">Consent: ${mapping.consentType.replace('_', ' ')}</span>` : ''}
         </div>
       </div>
     `).join('');
