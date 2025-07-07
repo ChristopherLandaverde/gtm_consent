@@ -49,7 +49,7 @@ Chrome Extension (Manifest V3) for debugging Google Tag Manager Consent Mode imp
 ### Enhanced Detection
 - **Multi-container Support**: Multiple GTM container detection and analysis ✅
 - **Advanced CMP Detection**: TrustArc, custom implementations ✅
-- **Trigger/Variable Detection**: Complete GTM analysis ✅
+- **Trigger/Variable Detection**: Complete GTM analysis with comprehensive detection ✅
 - **Performance Monitoring**: Comprehensive metrics and impact tracking ✅
 
 ### UI/UX Polish
@@ -130,6 +130,7 @@ Focus: Chrome Web Store preparation, community building, documentation
 - Performance monitoring provides real-time insights
 - Consent simulator intelligently disables when consent mode unavailable
 - Tags tab fully functional with multi-container support
+- **Triggers & Variables tab**: Complete GTM analysis with trigger detection, variable extraction, and tag-trigger mapping
 
 ### Architecture Decisions
 - IIFE modules for popup components

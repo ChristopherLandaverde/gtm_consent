@@ -10,7 +10,53 @@ if (window.ConsentInspector) {
   window.ConsentInspector = {
     version: 'external-v2-fixed',
     
+    // Event storage
+    eventLog: [],
+    maxEvents: 100,
+    
+    // Helper function to add events
+    addEvent: function(category, type, details, data = null) {
+      const event = {
+        timestamp: Date.now(),
+        category: category,
+        type: type,
+        details: details,
+        data: data
+      };
+      
+      this.eventLog.push(event);
+      
+      // Keep only the latest events
+      if (this.eventLog.length > this.maxEvents) {
+        this.eventLog = this.eventLog.slice(-this.maxEvents);
+      }
+      
+      console.log('📝 Event logged:', event);
+    },
+    
+    // Initialize with some basic events
+    init: function() {
+      this.addEvent('system', 'init', 'ConsentInspector initialized', { 
+        url: window.location.href,
+        userAgent: navigator.userAgent.substring(0, 100)
+      });
+      
+      // Log if GTM is already present
+      if (window.google_tag_manager) {
+        this.addEvent('gtm', 'found', 'GTM already present on page load');
+      }
+      
+      if (window.dataLayer) {
+        this.addEvent('datalayer', 'found', 'DataLayer already present on page load', { 
+          length: window.dataLayer.length 
+        });
+      }
+    },
+    
     detectGTM: function() {
+      
+      // Log GTM detection event
+      this.addEvent('gtm', 'detection_start', 'GTM detection started');
       
       const result = {
         hasGTM: false,
@@ -288,6 +334,9 @@ if (window.ConsentInspector) {
     updateConsent: function(settings) {
       console.log('🔒 updateConsent called with settings:', settings);
       
+      // Log the consent update event
+      this.addEvent('consent', 'update', 'Consent settings updated', settings);
+      
       try {
         if (window.gtag && typeof window.gtag === 'function') {
           console.log('🔒 Using gtag method');
@@ -299,29 +348,397 @@ if (window.ConsentInspector) {
             console.log('🔒 Recent dataLayer events after gtag call:', recentEvents);
           }, 100);
           
+          this.addEvent('consent', 'gtag_call', 'gtag consent update called', { method: 'gtag', settings });
           return { success: true, method: 'gtag' };
         }
         
         if (window.dataLayer && Array.isArray(window.dataLayer)) {
           console.log('🔒 Using dataLayer method');
           window.dataLayer.push(['consent', 'update', settings]);
+          this.addEvent('consent', 'datalayer_push', 'Consent update pushed to dataLayer', { method: 'dataLayer', settings });
           return { success: true, method: 'dataLayer' };
         }
         
         console.log('🔒 No consent mechanism available');
+        this.addEvent('consent', 'error', 'No consent mechanism available');
         return { success: false, error: 'No consent mechanism available' };
       } catch (error) {
         console.error('🔒 Error in updateConsent:', error);
+        this.addEvent('consent', 'error', 'Consent update failed: ' + error.message);
         return { success: false, error: error.message };
       }
     },
     
+    detectTriggersAndVariables: function() {
+      console.log('🔍 detectTriggersAndVariables called');
+      
+      const result = {
+        triggers: [],
+        variables: [],
+        tagTriggerMap: [],
+        summary: {
+          totalTriggers: 0,
+          totalVariables: 0,
+          tagsWithTriggers: 0
+        },
+        timestamp: Date.now()
+      };
+      
+      // Detect triggers from dataLayer events
+      if (window.dataLayer && Array.isArray(window.dataLayer)) {
+        const dataLayer = window.dataLayer;
+        
+        dataLayer.forEach((item, index) => {
+          if (typeof item === 'object' && item !== null) {
+            // Detect triggers based on event patterns
+            if (item.event) {
+              result.triggers.push({
+                name: `Event: ${item.event}`,
+                type: 'custom-event',
+                event: item.event,
+                source: 'dataLayer',
+                timestamp: Date.now(),
+                dataLayerIndex: index,
+                consentType: this.getConsentTypeForEvent(item.event)
+              });
+            }
+            
+            // Detect page view triggers
+            if (item['gtm.start'] || item.event === 'page_view') {
+              result.triggers.push({
+                name: 'Page View',
+                type: 'page-view',
+                event: 'page_view',
+                source: 'dataLayer',
+                timestamp: Date.now(),
+                dataLayerIndex: index
+              });
+            }
+            
+            // Detect consent triggers
+            if (item.event === 'consent_update' || item.event === 'consent_default') {
+              result.triggers.push({
+                name: 'Consent Update',
+                type: 'consent',
+                event: item.event,
+                source: 'dataLayer',
+                timestamp: Date.now(),
+                dataLayerIndex: index,
+                consentType: 'consent_update'
+              });
+            }
+            
+            // Detect e-commerce triggers
+            if (item.event && ['purchase', 'add_to_cart', 'view_item', 'begin_checkout'].includes(item.event)) {
+              result.triggers.push({
+                name: `E-commerce: ${item.event}`,
+                type: 'e-commerce',
+                event: item.event,
+                source: 'dataLayer',
+                timestamp: Date.now(),
+                dataLayerIndex: index,
+                consentType: 'analytics_storage'
+              });
+            }
+          }
+        });
+      }
+      
+      // Detect variables from dataLayer and GTM
+      if (window.dataLayer && Array.isArray(window.dataLayer)) {
+        const dataLayer = window.dataLayer;
+        
+        // Extract variables from dataLayer items
+        dataLayer.forEach((item, index) => {
+          if (typeof item === 'object' && item !== null) {
+            Object.keys(item).forEach(key => {
+              if (key !== 'event' && key !== 'gtm.start' && key !== 'gtm.uniqueEventId') {
+                result.variables.push({
+                  name: key,
+                  type: 'datalayer',
+                  value: JSON.stringify(item[key]),
+                  source: 'dataLayer',
+                  dataType: typeof item[key],
+                  dataLayerIndex: index
+                });
+              }
+            });
+          }
+        });
+      }
+      
+      // Detect GTM configuration variables
+      if (window.google_tag_manager) {
+        Object.keys(window.google_tag_manager).forEach(containerId => {
+          if (containerId.startsWith('GTM-')) {
+            const container = window.google_tag_manager[containerId];
+            
+            // Add container ID as variable
+            result.variables.push({
+              name: 'Container ID',
+              type: 'config',
+              value: containerId,
+              source: 'google_tag_manager',
+              dataType: 'string',
+              container: containerId
+            });
+            
+            // Add dataLayer length as variable
+            if (window.dataLayer) {
+              result.variables.push({
+                name: 'DataLayer Length',
+                type: 'config',
+                value: window.dataLayer.length.toString(),
+                source: 'google_tag_manager',
+                dataType: 'number',
+                container: containerId
+              });
+            }
+          }
+        });
+      }
+      
+      // Detect gtag configuration
+      if (window.gtag) {
+        result.variables.push({
+          name: 'gtag Function',
+          type: 'config',
+          value: 'Available',
+          source: 'gtag',
+          dataType: 'function'
+        });
+      }
+      
+      // Create tag-trigger mappings
+      const tags = this.getTagInfo();
+      tags.forEach(tag => {
+        const relatedTriggers = result.triggers.filter(trigger => 
+          trigger.consentType === tag.consentType || 
+          trigger.type === 'page-view' // Page view triggers are common
+        );
+        
+        if (relatedTriggers.length > 0) {
+          relatedTriggers.forEach(trigger => {
+            result.tagTriggerMap.push({
+              tag: tag.name,
+              trigger: trigger.name,
+              container: 'GTM',
+              consentType: tag.consentType
+            });
+          });
+        }
+      });
+      
+      // Update summary
+      result.summary.totalTriggers = result.triggers.length;
+      result.summary.totalVariables = result.variables.length;
+      result.summary.tagsWithTriggers = result.tagTriggerMap.length;
+      
+      console.log('🔍 Triggers and variables detection result:', result);
+      return result;
+    },
+    
+    getComprehensiveTagAnalysis: function() {
+      console.log('🔍 getComprehensiveTagAnalysis called');
+      
+      const triggersAndVars = this.detectTriggersAndVariables();
+      const tags = this.getTagInfo();
+      const consentState = this.getCurrentConsentState();
+      
+      // Analyze consent dependencies
+      const consentDependencies = tags.map(tag => ({
+        tag: tag.name,
+        consentType: tag.consentType,
+        required: true,
+        currentState: consentState[tag.consentType]
+      }));
+      
+      const result = {
+        ...triggersAndVars,
+        tags: tags,
+        consentState: consentState,
+        consentDependencies: consentDependencies,
+        summary: {
+          ...triggersAndVars.summary,
+          totalTags: tags.length,
+          containers: this.detectGTM().containers.length
+        },
+        timestamp: Date.now()
+      };
+      
+      console.log('🔍 Comprehensive analysis result:', result);
+      return result;
+    },
+    
+    getConsentTypeForEvent: function(eventName) {
+      const event = eventName.toLowerCase();
+      
+      if (event.includes('purchase') || event.includes('add_to_cart') || event.includes('view_item')) {
+        return 'analytics_storage';
+      }
+      
+      if (event.includes('consent')) {
+        return 'consent_update';
+      }
+      
+      if (event.includes('page_view') || event.includes('pageview')) {
+        return 'analytics_storage';
+      }
+      
+      return 'analytics_storage'; // Default
+    },
+    
+    detectIABTCF: function() {
+      console.log('🔍 detectIABTCF called');
+      
+      const result = {
+        detected: false,
+        version: null,
+        gdprApplies: false,
+        consentString: null,
+        purposeConsents: {},
+        vendorConsents: {},
+        timestamp: Date.now()
+      };
+      
+      // Check for IAB TCF API
+      if (window.__tcfapi) {
+        result.detected = true;
+        result.version = '2.2'; // Most common version
+        
+        // Try to get TCF data
+        try {
+          if (typeof window.__tcfapi === 'function') {
+            // TCF v2.2
+            window.__tcfapi('getTCData', 2, function(tcData, success) {
+              if (success && tcData) {
+                result.gdprApplies = tcData.gdprApplies || false;
+                result.consentString = tcData.tcString || null;
+                
+                if (tcData.purpose && tcData.purpose.consents) {
+                  result.purposeConsents = tcData.purpose.consents;
+                }
+                
+                if (tcData.vendor && tcData.vendor.consents) {
+                  result.vendorConsents = tcData.vendor.consents;
+                }
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error accessing TCF API:', error);
+        }
+      }
+      
+      // Check for older TCF versions
+      if (!result.detected && window.__tcfapi) {
+        result.detected = true;
+        result.version = '2.0';
+      }
+      
+      console.log('🔍 IAB TCF detection result:', result);
+      return result;
+    },
+    
+    detectCMP: function() {
+      console.log('🔍 detectCMP called');
+      
+      const result = {
+        detected: false,
+        name: null,
+        cmpId: null,
+        timestamp: Date.now()
+      };
+      
+      // Check for common CMPs
+      if (window.OneTrust) {
+        result.detected = true;
+        result.name = 'OneTrust';
+        result.cmpId = '1';
+      } else if (window.Cookiebot) {
+        result.detected = true;
+        result.name = 'Cookiebot';
+        result.cmpId = '2';
+      } else if (window._paq) {
+        result.detected = true;
+        result.name = 'Matomo';
+        result.cmpId = '3';
+      } else if (window.consentmanager) {
+        result.detected = true;
+        result.name = 'ConsentManager';
+        result.cmpId = '4';
+      } else if (window.__tcfapi) {
+        result.detected = true;
+        result.name = 'IAB TCF';
+        result.cmpId = '5';
+      } else if (window.fbq) {
+        result.detected = true;
+        result.name = 'Facebook';
+        result.cmpId = '6';
+      } else if (window.gtag) {
+        result.detected = true;
+        result.name = 'Google Tag Manager';
+        result.cmpId = '7';
+      }
+      
+      console.log('🔍 CMP detection result:', result);
+      return result;
+    },
+    
+    parseTCFConsentString: function(consentString) {
+      console.log('🔍 parseTCFConsentString called with:', consentString);
+      
+      if (!consentString) {
+        return { error: 'No consent string provided' };
+      }
+      
+      try {
+        // Basic TCF consent string parsing
+        const result = {
+          raw: consentString,
+          length: consentString.length,
+          version: '2.2',
+          decoded: 'Basic parsing - full decoding requires TCF library'
+        };
+        
+        // Try to decode if we have the TCF API
+        if (window.__tcfapi && typeof window.__tcfapi === 'function') {
+          try {
+            window.__tcfapi('getTCData', 2, function(tcData, success) {
+              if (success && tcData) {
+                result.decoded = JSON.stringify(tcData, null, 2);
+              }
+            });
+          } catch (error) {
+            console.error('Error decoding with TCF API:', error);
+          }
+        }
+        
+        console.log('🔍 Consent string parsing result:', result);
+        return result;
+      } catch (error) {
+        console.error('Error parsing consent string:', error);
+        return { error: 'Failed to parse consent string: ' + error.message };
+      }
+    },
+    
     getEvents: function() {
-      return [];
+      return this.eventLog;
+    },
+    
+    clearEvents: function() {
+      this.eventLog = [];
+      this.addEvent('system', 'clear', 'Event log cleared');
+      return { success: true };
     }
   };
   
 
+}
+
+// Initialize the ConsentInspector
+if (window.ConsentInspector && window.ConsentInspector.init) {
+  window.ConsentInspector.init();
 }
 
 // Listen for messages from content script
@@ -348,6 +765,30 @@ window.addEventListener('message', function(event) {
           
         case 'getEvents':
           result = window.ConsentInspector.getEvents();
+          break;
+          
+        case 'clearEventLog':
+          result = window.ConsentInspector.clearEvents();
+          break;
+          
+        case 'getComprehensiveTagAnalysis':
+          result = window.ConsentInspector.getComprehensiveTagAnalysis();
+          break;
+          
+        case 'getCurrentConsentState':
+          result = window.ConsentInspector.getCurrentConsentState();
+          break;
+          
+        case 'detectIABTCF':
+          result = window.ConsentInspector.detectIABTCF();
+          break;
+          
+        case 'detectCMP':
+          result = window.ConsentInspector.detectCMP();
+          break;
+          
+        case 'parseTCFConsentString':
+          result = window.ConsentInspector.parseTCFConsentString(data);
           break;
           
         default:

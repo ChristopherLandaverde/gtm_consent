@@ -3,209 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GTM Trigger & Variable Detection Test</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        
-        .test-container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .results {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            white-space: pre-wrap;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        button {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-right: 10px;
-            margin-bottom: 10px;
-        }
-        
-        button:hover {
-            background: #0056b3;
-        }
-        
-        .success {
-            color: #28a745;
-        }
-        
-        .error {
-            color: #dc3545;
-        }
-    </style>
+    <title>GTM Triggers & Variables Test</title>
+    
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-TEST123');</script>
+    <!-- End Google Tag Manager -->
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'GA_MEASUREMENT_ID');
+    </script>
 </head>
 <body>
-    <div class="test-container">
-        <h1>🧪 GTM Trigger & Variable Detection Test</h1>
-        <p>This page tests the trigger and variable detection functionality of the GTM Consent Mode Inspector.</p>
-        
-        <button onclick="setupTestGTM()">Setup Test GTM</button>
-        <button onclick="testTriggerDetection()">Test Trigger Detection</button>
-        <button onclick="testVariableDetection()">Test Variable Detection</button>
-        <button onclick="testComprehensiveAnalysis()">Test Comprehensive Analysis</button>
-        <button onclick="clearResults()">Clear Results</button>
-        
-        <div id="results" class="results">Ready to run tests...</div>
-    </div>
-
-    <!-- Test GTM Setup -->
+    <h1>GTM Triggers & Variables Test Page</h1>
+    <p>This page tests the triggers and variables detection functionality.</p>
+    
+    <button onclick="triggerCustomEvent()">Trigger Custom Event</button>
+    <button onclick="triggerPurchaseEvent()">Trigger Purchase Event</button>
+    <button onclick="triggerConsentUpdate()">Trigger Consent Update</button>
+    <button onclick="testTriggersVars()">Test Triggers & Variables</button>
+    
+    <div id="results"></div>
+    
     <script>
-        // Mock GTM environment
-        window.dataLayer = [];
-        window.google_tag_manager = {
-            'GTM-TEST1': {
-                dataLayer: window.dataLayer
-            }
-        };
+        // Initialize dataLayer with some test data
+        window.dataLayer = window.dataLayer || [];
         
-        // Mock gtag function
-        window.gtag = function() {
-            window.dataLayer.push(Array.from(arguments));
-        };
-        
-        function log(message, type = 'info') {
-            const results = document.getElementById('results');
-            const timestamp = new Date().toLocaleTimeString();
-            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
-            results.innerHTML += `[${timestamp}] ${message}\n`;
-            results.scrollTop = results.scrollHeight;
-        }
-        
-        function clearResults() {
-            document.getElementById('results').innerHTML = 'Results cleared...\n';
-        }
-        
-        function setupTestGTM() {
-            log('Setting up test GTM environment...');
-            
-            // Add various test data
-            window.dataLayer.push(['config', 'G-TEST123']);
-            window.dataLayer.push(['event', 'purchase', { value: 100, currency: 'USD' }]);
-            window.dataLayer.push(['consent', 'default', { analytics_storage: 'denied', ad_storage: 'denied' }]);
-            window.dataLayer.push({
-                event: 'page_view',
-                page_title: 'Test Page',
-                user_id: '12345',
-                custom_data: { key: 'value' }
-            });
-            
-            log('✅ Test GTM environment setup complete', 'success');
-            log(`DataLayer items: ${window.dataLayer.length}`);
-        }
-        
-        function testTriggerDetection() {
-            log('Testing trigger detection...');
-            
-            if (window.ConsentInspector && window.ConsentInspector.detectTriggersAndVariables) {
-                try {
-                    const result = window.ConsentInspector.detectTriggersAndVariables();
-                    log(`✅ Triggers detected: ${result.triggers.length}`, 'success');
-                    log(`✅ Variables detected: ${result.variables.length}`, 'success');
-                    
-                    if (result.triggers.length > 0) {
-                        log('Sample triggers:');
-                        result.triggers.slice(0, 3).forEach(trigger => {
-                            log(`  - ${trigger.name}: ${trigger.event} (${trigger.consentType})`);
-                        });
-                    }
-                    
-                    if (result.variables.length > 0) {
-                        log('Sample variables:');
-                        result.variables.slice(0, 3).forEach(variable => {
-                            log(`  - ${variable.name}: ${variable.value} (${variable.type})`);
-                        });
-                    }
-                } catch (error) {
-                    log(`❌ Error: ${error.message}`, 'error');
-                }
-            } else {
-                log('❌ ConsentInspector not available', 'error');
-            }
-        }
-        
-        function testVariableDetection() {
-            log('Testing variable detection...');
-            
-            if (window.ConsentInspector && window.ConsentInspector.detectTriggersAndVariables) {
-                try {
-                    const result = window.ConsentInspector.detectTriggersAndVariables();
-                    
-                    // Test deduplication
-                    const originalCount = result.variables.length;
-                    const uniqueVariables = window.ConsentInspector.deduplicateVariables(result.variables);
-                    const uniqueCount = uniqueVariables.length;
-                    
-                    log(`✅ Variables before deduplication: ${originalCount}`, 'success');
-                    log(`✅ Variables after deduplication: ${uniqueCount}`, 'success');
-                    
-                    if (originalCount !== uniqueCount) {
-                        log(`✅ Deduplication working: removed ${originalCount - uniqueCount} duplicates`, 'success');
-                    }
-                    
-                } catch (error) {
-                    log(`❌ Error: ${error.message}`, 'error');
-                }
-            } else {
-                log('❌ ConsentInspector not available', 'error');
-            }
-        }
-        
-        function testComprehensiveAnalysis() {
-            log('Testing comprehensive analysis...');
-            
-            if (window.ConsentInspector && window.ConsentInspector.getComprehensiveTagAnalysis) {
-                try {
-                    const result = window.ConsentInspector.getComprehensiveTagAnalysis();
-                    
-                    log(`✅ Analysis complete:`, 'success');
-                    log(`  - Tags: ${result.summary.totalTags}`);
-                    log(`  - Triggers: ${result.summary.totalTriggers}`);
-                    log(`  - Variables: ${result.summary.totalVariables}`);
-                    log(`  - Tags with triggers: ${result.summary.tagsWithTriggers}`);
-                    log(`  - Tags with variables: ${result.summary.tagsWithVariables}`);
-                    
-                    if (result.tags.length > 0) {
-                        log('Enhanced tags:');
-                        result.tags.forEach(tag => {
-                            log(`  - ${tag.name}: ${tag.triggerCount} triggers, ${tag.variableCount} variables`);
-                        });
-                    }
-                    
-                } catch (error) {
-                    log(`❌ Error: ${error.message}`, 'error');
-                }
-            } else {
-                log('❌ ConsentInspector not available', 'error');
-            }
-        }
-        
-        // Auto-setup when page loads
-        window.addEventListener('load', () => {
-            log('Page loaded. Setting up test environment...');
-            setupTestGTM();
+        // Add some initial dataLayer items
+        window.dataLayer.push({
+            'page_title': 'Test Page',
+            'page_location': window.location.href,
+            'user_id': 'test_user_123'
         });
+        
+        function triggerCustomEvent() {
+            window.dataLayer.push({
+                'event': 'custom_event',
+                'event_category': 'test',
+                'event_action': 'button_click',
+                'event_label': 'custom_event_button'
+            });
+            console.log('Custom event triggered');
+        }
+        
+        function triggerPurchaseEvent() {
+            window.dataLayer.push({
+                'event': 'purchase',
+                'transaction_id': 'T_12345',
+                'value': 99.99,
+                'currency': 'USD',
+                'items': [{
+                    'item_id': 'SKU_123',
+                    'item_name': 'Test Product',
+                    'price': 99.99,
+                    'quantity': 1
+                }]
+            });
+            console.log('Purchase event triggered');
+        }
+        
+        function triggerConsentUpdate() {
+            window.dataLayer.push(['consent', 'update', {
+                'analytics_storage': 'granted',
+                'ad_storage': 'denied',
+                'functionality_storage': 'granted',
+                'personalization_storage': 'denied',
+                'security_storage': 'granted'
+            }]);
+            console.log('Consent update triggered');
+        }
+        
+        function testTriggersVars() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h3>Testing Triggers & Variables Detection...</h3>';
+            
+            // Wait for GTM to load
+            setTimeout(() => {
+                if (window.ConsentInspector && window.ConsentInspector.detectTriggersAndVariables) {
+                    console.log('Testing detectTriggersAndVariables...');
+                    const result = window.ConsentInspector.detectTriggersAndVariables();
+                    console.log('Triggers & Variables Result:', result);
+                    
+                    let html = '<h3>Triggers & Variables Detection Results:</h3>';
+                    html += '<h4>Summary:</h4>';
+                    html += `<p>Total Triggers: ${result.summary.totalTriggers}</p>`;
+                    html += `<p>Total Variables: ${result.summary.totalVariables}</p>`;
+                    html += `<p>Tag-Trigger Mappings: ${result.summary.tagsWithTriggers}</p>`;
+                    
+                    html += '<h4>Triggers:</h4>';
+                    if (result.triggers.length > 0) {
+                        html += '<ul>';
+                        result.triggers.forEach(trigger => {
+                            html += `<li><strong>${trigger.name}</strong> (${trigger.type}) - Event: ${trigger.event}</li>`;
+                        });
+                        html += '</ul>';
+                    } else {
+                        html += '<p>No triggers detected</p>';
+                    }
+                    
+                    html += '<h4>Variables:</h4>';
+                    if (result.variables.length > 0) {
+                        html += '<ul>';
+                        result.variables.forEach(variable => {
+                            html += `<li><strong>${variable.name}</strong> (${variable.type}) - Value: ${variable.value}</li>`;
+                        });
+                        html += '</ul>';
+                    } else {
+                        html += '<p>No variables detected</p>';
+                    }
+                    
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = '<p>ConsentInspector not available</p>';
+                }
+            }, 2000);
+        }
+        
+        // Test comprehensive analysis
+        function testComprehensiveAnalysis() {
+            if (window.ConsentInspector && window.ConsentInspector.getComprehensiveTagAnalysis) {
+                console.log('Testing getComprehensiveTagAnalysis...');
+                const result = window.ConsentInspector.getComprehensiveTagAnalysis();
+                console.log('Comprehensive Analysis Result:', result);
+                return result;
+            }
+            return null;
+        }
+        
+        // Auto-test after page load
+        setTimeout(() => {
+            console.log('Auto-testing triggers and variables...');
+            testTriggersVars();
+            testComprehensiveAnalysis();
+        }, 3000);
     </script>
 </body>
 </html> 

@@ -263,10 +263,18 @@ header h1 {
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--color-border-primary);
   position: relative;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab-button {
-  flex: 1;
+  min-width: 120px;
+  flex-shrink: 0;
   padding: var(--space-3) var(--space-4);
   background: transparent;
   border: none;
@@ -1696,6 +1704,47 @@ footer {
   body {
     background: white !important;
     color: black !important;
+  }
+}
+
+/* Add to the end of the file for dark mode support */
+@media (prefers-color-scheme: dark) {
+  .notification,
+  .error-message,
+  .empty-state,
+  .qa-fail,
+  .qa-pass {
+    background: #23272f !important;
+    color: #fff !important;
+    border-color: #444 !important;
+  }
+  .notification.error,
+  .error-message {
+    background: #3a2323 !important;
+    color: #fff !important;
+    border-color: #ef4444 !important;
+  }
+  .notification.success,
+  .qa-pass {
+    background: #1e2d23 !important;
+    color: #d1fae5 !important;
+    border-color: #10b981 !important;
+  }
+  .notification.info {
+    background: #1e293b !important;
+    color: #dbeafe !important;
+    border-color: #3b82f6 !important;
+  }
+  .notification.warning {
+    background: #332a1e !important;
+    color: #fde68a !important;
+    border-color: #f59e0b !important;
+  }
+  .qa-fail {
+    border-left: 4px solid #ef4444 !important;
+  }
+  .qa-pass {
+    border-left: 4px solid #10b981 !important;
   }
 }
 

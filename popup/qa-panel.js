@@ -2,9 +2,8 @@
 const QAPanel = (function() {
   let contentScriptInterface = null;
 
-  function initialize(contentInterface) {
+  function initialize() {
     console.log('🧪 Initializing QAPanel...');
-    contentScriptInterface = contentInterface;
     
     initializeConsentTestButton();
     initializeTagTestButton();
@@ -48,7 +47,7 @@ const QAPanel = (function() {
 
   async function runConsentTest() {
     try {
-      const result = await contentScriptInterface.sendMessage('checkGTM');
+      const result = await ContentScriptInterface.sendMessage('checkGTM');
       
       const results = [];
       
@@ -102,7 +101,7 @@ const QAPanel = (function() {
 
   async function runTagTest() {
     try {
-      const result = await contentScriptInterface.sendMessage('getTagStatus');
+      const result = await ContentScriptInterface.sendMessage('getTagStatus');
       
       const results = [];
       

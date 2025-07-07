@@ -58,8 +58,7 @@ const IABTCF = (function() {
     50: 'Identify devices based on information transmitted automatically'
   };
 
-  function init(interface) {
-    contentInterface = interface;
+  function init() {
     setupEventListeners();
     loadTCFData();
   }
@@ -81,8 +80,8 @@ const IABTCF = (function() {
   async function loadTCFData() {
     try {
       // Get TCF data from injected script
-      const tcfData = await contentInterface.sendMessage('detectIABTCF');
-      const cmpData = await contentInterface.sendMessage('detectCMP');
+      const tcfData = await ContentScriptInterface.sendMessage('detectIABTCF');
+      const cmpData = await ContentScriptInterface.sendMessage('detectCMP');
       
       currentTCFData = tcfData;
       currentCMPData = cmpData;
@@ -199,7 +198,7 @@ const IABTCF = (function() {
     }
 
     try {
-      const parsed = await contentInterface.sendMessage('parseTCFConsentString', currentTCFData.consentString);
+      const parsed = await ContentScriptInterface.sendMessage('parseTCFConsentString', currentTCFData.consentString);
       
       if (parsed) {
         showInfo('Consent String Parsed', `

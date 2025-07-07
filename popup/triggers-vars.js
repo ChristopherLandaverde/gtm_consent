@@ -6,7 +6,7 @@ const TriggersVarsModule = (function() {
     variables: 'all'
   };
 
-  function init(contentInterface) {
+  function init() {
     console.log('🔍 Initializing Triggers & Variables module...');
     
     // Set up event listeners
@@ -49,7 +49,7 @@ const TriggersVarsModule = (function() {
       showLoading();
       
       // Get comprehensive analysis from page
-      const analysis = await contentInterface.sendMessage('getComprehensiveTagAnalysis');
+      const analysis = await ContentScriptInterface.sendMessage('getComprehensiveTagAnalysis');
       
       if (analysis && !analysis.error) {
         currentAnalysis = analysis;
@@ -316,4 +316,7 @@ const TriggersVarsModule = (function() {
     loadAnalysis: loadAnalysis,
     refresh: loadAnalysis
   };
-})(); 
+})();
+
+// Make module available globally
+window.TriggersVarsModule = TriggersVarsModule; 

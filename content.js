@@ -110,6 +110,56 @@
             sendResponse(Array.isArray(eventResult) ? eventResult : []);
             break;
             
+          case 'getComprehensiveTagAnalysis':
+            // Ensure script is injected first
+            if (!scriptInjected) {
+              await injectScript();
+            }
+            // Use postMessage to communicate with page context
+            const analysisResult = await sendMessageToPage('getComprehensiveTagAnalysis');
+            sendResponse(analysisResult);
+            break;
+            
+          case 'getCurrentConsentState':
+            // Ensure script is injected first
+            if (!scriptInjected) {
+              await injectScript();
+            }
+            // Use postMessage to communicate with page context
+            const consentStateResult = await sendMessageToPage('getCurrentConsentState');
+            sendResponse(consentStateResult);
+            break;
+            
+          case 'detectIABTCF':
+            // Ensure script is injected first
+            if (!scriptInjected) {
+              await injectScript();
+            }
+            // Use postMessage to communicate with page context
+            const tcfResult = await sendMessageToPage('detectIABTCF');
+            sendResponse(tcfResult);
+            break;
+            
+          case 'detectCMP':
+            // Ensure script is injected first
+            if (!scriptInjected) {
+              await injectScript();
+            }
+            // Use postMessage to communicate with page context
+            const cmpResult = await sendMessageToPage('detectCMP');
+            sendResponse(cmpResult);
+            break;
+            
+          case 'parseTCFConsentString':
+            // Ensure script is injected first
+            if (!scriptInjected) {
+              await injectScript();
+            }
+            // Use postMessage to communicate with page context
+            const parseResult = await sendMessageToPage('parseTCFConsentString', request.data);
+            sendResponse(parseResult);
+            break;
+            
           default:
             sendResponse({ error: 'Unknown action: ' + request.action });
         }

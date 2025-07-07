@@ -131,6 +131,22 @@ function initializeModules() {
     window.ContainersPanel.initialize(ContentScriptInterface);
   }
   
+  if (window.TriggersVarsModule) {
+    window.TriggersVarsModule.init();
+  }
+  
+  if (window.MonitoringModule) {
+    window.MonitoringModule.init();
+  }
+  
+  if (window.IABTCF) {
+    window.IABTCF.init();
+  }
+  
+  if (window.QAPanel) {
+    window.QAPanel.initialize();
+  }
+  
   // Initialize diagnostic buttons
   initializeDiagnosticButtons();
 }
