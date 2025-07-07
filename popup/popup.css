@@ -1173,30 +1173,46 @@ footer {
   line-height: var(--line-height-relaxed);
 }
 
-.trigger-consent,
-.variable-consent {
-  margin-top: var(--space-2);
-  padding: var(--space-2);
-  background: var(--color-info-light);
-  border-radius: var(--radius-sm);
-  border-left: 3px solid var(--color-info);
+.trigger-consent {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
   font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
+  font-weight: 600;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary-border);
 }
 
 .trigger-consent.analytics_storage {
-  background: var(--color-success-light);
-  border-left-color: var(--color-success);
+  background: #e0f7fa;
+  color: #007b83;
+  border-color: #b2ebf2;
 }
 
 .trigger-consent.ad_storage {
-  background: var(--color-warning-light);
-  border-left-color: var(--color-warning);
+  background: #fff3e0;
+  color: #e65100;
+  border-color: #ffe0b2;
 }
 
 .trigger-consent.functionality_storage {
-  background: var(--color-primary-light);
-  border-left-color: var(--color-primary);
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-color: #c8e6c9;
+}
+
+.trigger-consent.personalization_storage {
+  background: #f3e5f5;
+  color: #6a1b9a;
+  border-color: #ce93d8;
+}
+
+.trigger-consent.security_storage {
+  background: #fbe9e7;
+  color: #bf360c;
+  border-color: #ffccbc;
 }
 
 .variable-value {

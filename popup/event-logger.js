@@ -4,43 +4,42 @@ const EventLogger = (function() {
   let currentEvents = [];
   let currentEventFilter = 'all';
   let contentScriptInterface = null;
+  // Cache DOM elements
+  let eventLogElement = null;
+  let filterContainer = null;
+  let clearBtn = null;
+  let exportBtn = null;
 
   function initialize(contentInterface) {
     console.log('📝 Initializing EventLogger...');
     contentScriptInterface = contentInterface;
-    
+    eventLogElement = document.getElementById('eventLog');
+    filterContainer = document.querySelector('#events-tab .filter-controls');
+    clearBtn = document.getElementById('clearLog');
+    exportBtn = document.getElementById('exportLog');
     initializeEventFilters();
     initializeClearButton();
     initializeExportButton();
   }
 
   function initializeEventFilters() {
-    const filterContainer = document.querySelector('#events-tab .filter-controls');
     if (!filterContainer) return;
-    
     filterContainer.addEventListener('click', function(e) {
       if (!e.target.matches('.filter-btn[data-event-filter]')) return;
-      
       const filterValue = e.target.getAttribute('data-event-filter');
-      
-      // Update active state
       filterContainer.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.toggle('active', btn === e.target);
       });
-      
       currentEventFilter = filterValue;
       filterEvents(filterValue);
     });
   }
 
   function initializeClearButton() {
-    const clearBtn = document.getElementById('clearLog');
     if (!clearBtn) return;
-    
     let clearTimeout = null;
     clearBtn.addEventListener('click', function() {
       if (clearTimeout) return;
-      
       clearTimeout = setTimeout(async () => {
         await clearEventLog();
         clearTimeout = null;
@@ -49,21 +48,21 @@ const EventLogger = (function() {
   }
 
   function initializeExportButton() {
-    const exportBtn = document.getElementById('exportLog');
     if (!exportBtn) return;
-    
     exportBtn.addEventListener('click', function() {
       exportEventLog();
     });
   }
 
+  function showLoading() {
+    if (eventLogElement) {
+      eventLogElement.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    }
+  }
+
   function filterEvents(category) {
-    const eventLog = document.getElementById('eventLog');
-    if (!eventLog) return;
-    
-    eventLog.className = `event-log filter-${category}`;
-    
-    // Add filter styles if not present
+    if (!eventLogElement) return;
+    eventLogElement.className = `event-log filter-${category}`;
     if (!document.getElementById('event-filter-styles')) {
       const style = document.createElement('style');
       style.id = 'event-filter-styles';
@@ -78,31 +77,23 @@ const EventLogger = (function() {
   }
 
   function updateEventLog(events) {
-    const eventLogElement = document.getElementById('eventLog');
     if (!eventLogElement) return;
-    
     if (!events || events.length === 0) {
       eventLogElement.innerHTML = '<div class="event-item empty-state">No events recorded yet</div>';
       return;
     }
-    
     const limitedEvents = events.slice(-MAX_EVENTS);
     if (JSON.stringify(limitedEvents) === JSON.stringify(currentEvents)) {
       return; // No changes
     }
-    
     currentEvents = [...limitedEvents];
-    
     const fragment = document.createDocumentFragment();
-    
     limitedEvents.reverse().forEach(event => {
       const eventElement = createEventElement(event);
       fragment.appendChild(eventElement);
     });
-    
     eventLogElement.innerHTML = '';
     eventLogElement.appendChild(fragment);
-    
     filterEvents(currentEventFilter);
     eventLogElement.scrollTop = 0;
   }
@@ -111,10 +102,7 @@ const EventLogger = (function() {
     const eventItem = document.createElement('div');
     eventItem.className = 'event-item';
     eventItem.setAttribute('data-event-type', event.category || 'other');
-    
     const timestamp = new Date(event.timestamp).toLocaleTimeString();
-    
-    // Format event data for display
     let eventData = '';
     if (event.data) {
       try {
@@ -123,9 +111,7 @@ const EventLogger = (function() {
         eventData = String(event.data);
       }
     }
-    
     const details = event.details || event.eventName || 'Event';
-    
     eventItem.innerHTML = `
       <div class="event-header">
         <span class="event-time">[${timestamp}]</span>
@@ -134,7 +120,6 @@ const EventLogger = (function() {
       <div class="event-detail">${escapeHtml(details)}</div>
       ${eventData ? `<div class="event-data"><pre>${escapeHtml(eventData)}</pre></div>` : ''}
     `;
-    
     return eventItem;
   }
 
@@ -150,7 +135,7 @@ const EventLogger = (function() {
 
   async function refresh() {
     if (!contentScriptInterface) return;
-    
+    showLoading();
     try {
       const events = await contentScriptInterface.sendMessage('getEventLog');
       if (events) {
@@ -163,11 +148,9 @@ const EventLogger = (function() {
 
   async function clearEventLog() {
     if (!contentScriptInterface) return;
-    
     try {
       await contentScriptInterface.sendMessage('clearEventLog');
       currentEvents = [];
-      const eventLogElement = document.getElementById('eventLog');
       if (eventLogElement) {
         eventLogElement.innerHTML = '<div class="event-item empty-state">Event log cleared</div>';
       }
@@ -181,37 +164,32 @@ const EventLogger = (function() {
       showNotification('No events to export', 'warning');
       return;
     }
-
     try {
       const exportData = {
         timestamp: new Date().toISOString(),
         url: location.href,
         events: currentEvents
       };
-      
       const blob = new Blob([JSON.stringify(exportData, null, 2)], {
         type: 'application/json'
       });
-      
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `gtm-events-${new Date().toISOString().split('T')[0]}.json`;
-      
-      document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
-      showNotification('Events exported successfully', 'success');
     } catch (error) {
-      showNotification('Export failed: ' + error.message, 'error');
+      showNotification('Failed to export events', 'error');
     }
   }
 
   function showNotification(message, type = 'info') {
-    console.log(`📢 ${type}: ${message}`);
-    // You can enhance this with actual UI notifications later
+    if (window.showNotification) {
+      window.showNotification(message, type);
+    } else {
+      alert(message);
+    }
   }
 
   // Public API

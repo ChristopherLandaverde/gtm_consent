@@ -5,58 +5,69 @@ const TriggersVarsModule = (function() {
     triggers: 'all',
     variables: 'all'
   };
+  // Cache DOM elements
+  let triggerList = null;
+  let variableList = null;
+  let mappingList = null;
+  let triggerFilterContainer = null;
+  let variableFilterContainer = null;
+  let refreshBtn = null;
+  let exportBtn = null;
+  let consentDepsBtn = null;
 
   function init() {
     console.log('🔍 Initializing Triggers & Variables module...');
-    
-    // Set up event listeners
+    // Cache DOM elements
+    triggerList = document.getElementById('triggerList');
+    variableList = document.getElementById('variableList');
+    mappingList = document.getElementById('mappingList');
+    triggerFilterContainer = document.querySelector('#triggers-vars-tab .filter-controls');
+    variableFilterContainer = document.querySelector('#triggers-vars-tab .section:nth-child(2) .filter-controls');
+    refreshBtn = document.getElementById('refreshAnalysis');
+    exportBtn = document.getElementById('exportAnalysis');
+    consentDepsBtn = document.getElementById('showConsentDependencies');
     setupEventListeners();
-    
-    // Initial load
     loadAnalysis();
   }
 
   function setupEventListeners() {
     // Filter buttons for triggers
-    document.querySelectorAll('[data-trigger-filter]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const filter = e.target.dataset.triggerFilter;
-        setTriggerFilter(filter);
+    if (triggerFilterContainer) {
+      triggerFilterContainer.querySelectorAll('[data-trigger-filter]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const filter = e.target.dataset.triggerFilter;
+          setTriggerFilter(filter);
+        });
       });
-    });
-
+    }
     // Filter buttons for variables
-    document.querySelectorAll('[data-variable-filter]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const filter = e.target.dataset.variableFilter;
-        setVariableFilter(filter);
+    if (variableFilterContainer) {
+      variableFilterContainer.querySelectorAll('[data-variable-filter]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const filter = e.target.dataset.variableFilter;
+          setVariableFilter(filter);
+        });
       });
-    });
-
+    }
     // Action buttons
-    document.getElementById('refreshAnalysis').addEventListener('click', loadAnalysis);
-    document.getElementById('exportAnalysis').addEventListener('click', exportAnalysis);
-    document.getElementById('showConsentDependencies').addEventListener('click', showConsentDependencies);
+    if (refreshBtn) refreshBtn.addEventListener('click', loadAnalysis);
+    if (exportBtn) exportBtn.addEventListener('click', exportAnalysis);
+    if (consentDepsBtn) consentDepsBtn.addEventListener('click', showConsentDependencies);
   }
 
   async function loadAnalysis() {
     try {
       console.log('🔍 Loading comprehensive tag analysis...');
-      
-      // Show loading state
       showLoading();
-      
-      // Get comprehensive analysis from page
       const analysis = await ContentScriptInterface.sendMessage('getComprehensiveTagAnalysis');
-      
       if (analysis && !analysis.error) {
         currentAnalysis = analysis;
         updateOverview(analysis);
-        renderTriggers(analysis.triggers);
-        renderVariables(analysis.variables);
-        renderMappings(analysis.tagTriggerMap);
+        renderTriggers((analysis.triggers || []).slice(0, 100));
+        renderVariables((analysis.variables || []).slice(0, 100));
+        renderMappings((analysis.tagTriggerMap || []).slice(0, 100));
         hideLoading();
       } else {
         console.error('❌ Error loading analysis:', analysis?.error);
@@ -70,7 +81,6 @@ const TriggersVarsModule = (function() {
 
   function updateOverview(analysis) {
     const { summary } = analysis;
-    
     document.getElementById('totalTagsValue').textContent = summary.totalTags;
     document.getElementById('totalTriggersValue').textContent = summary.totalTriggers;
     document.getElementById('totalVariablesValue').textContent = summary.totalVariables;
@@ -78,16 +88,13 @@ const TriggersVarsModule = (function() {
   }
 
   function renderTriggers(triggers) {
-    const container = document.getElementById('triggerList');
-    
+    if (!triggerList) return;
     if (!triggers || triggers.length === 0) {
-      container.innerHTML = '<div class="trigger-item empty-state">No triggers detected...</div>';
+      triggerList.innerHTML = '<div class="trigger-item empty-state">No triggers detected...</div>';
       return;
     }
-
     const filteredTriggers = filterTriggers(triggers, currentFilters.triggers);
-    
-    container.innerHTML = filteredTriggers.map(trigger => `
+    triggerList.innerHTML = filteredTriggers.map(trigger => `
       <div class="trigger-item">
         <div class="trigger-header">
           <span class="trigger-name">${escapeHtml(trigger.name)}</span>
@@ -109,16 +116,13 @@ const TriggersVarsModule = (function() {
   }
 
   function renderVariables(variables) {
-    const container = document.getElementById('variableList');
-    
+    if (!variableList) return;
     if (!variables || variables.length === 0) {
-      container.innerHTML = '<div class="variable-item empty-state">No variables detected...</div>';
+      variableList.innerHTML = '<div class="variable-item empty-state">No variables detected...</div>';
       return;
     }
-
     const filteredVariables = filterVariables(variables, currentFilters.variables);
-    
-    container.innerHTML = filteredVariables.map(variable => `
+    variableList.innerHTML = filteredVariables.map(variable => `
       <div class="variable-item">
         <div class="variable-header">
           <span class="variable-name">${escapeHtml(variable.name)}</span>
@@ -136,14 +140,12 @@ const TriggersVarsModule = (function() {
   }
 
   function renderMappings(mappings) {
-    const container = document.getElementById('mappingList');
-    
+    if (!mappingList) return;
     if (!mappings || mappings.length === 0) {
-      container.innerHTML = '<div class="mapping-item empty-state">No tag-trigger mappings detected...</div>';
+      mappingList.innerHTML = '<div class="mapping-item empty-state">No tag-trigger mappings detected...</div>';
       return;
     }
-
-    container.innerHTML = mappings.map(mapping => `
+    mappingList.innerHTML = mappings.map(mapping => `
       <div class="mapping-item">
         <div class="mapping-header">
           <span class="mapping-name">Tag-Trigger Mapping</span>
@@ -159,7 +161,6 @@ const TriggersVarsModule = (function() {
 
   function filterTriggers(triggers, filter) {
     if (filter === 'all') return triggers;
-    
     return triggers.filter(trigger => {
       const name = trigger.name.toLowerCase();
       switch (filter) {
@@ -180,11 +181,9 @@ const TriggersVarsModule = (function() {
 
   function filterVariables(variables, filter) {
     if (filter === 'all') return variables;
-    
     return variables.filter(variable => {
       const type = variable.type.toLowerCase();
       const source = variable.source.toLowerCase();
-      
       switch (filter) {
         case 'datalayer':
           return type === 'datalayer' || source === 'datalayer';
@@ -202,29 +201,25 @@ const TriggersVarsModule = (function() {
 
   function setTriggerFilter(filter) {
     currentFilters.triggers = filter;
-    
-    // Update active button
-    document.querySelectorAll('[data-trigger-filter]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.triggerFilter === filter);
-    });
-    
-    // Re-render triggers
+    if (triggerFilterContainer) {
+      triggerFilterContainer.querySelectorAll('[data-trigger-filter]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.triggerFilter === filter);
+      });
+    }
     if (currentAnalysis) {
-      renderTriggers(currentAnalysis.triggers);
+      renderTriggers((currentAnalysis.triggers || []).slice(0, 100));
     }
   }
 
   function setVariableFilter(filter) {
     currentFilters.variables = filter;
-    
-    // Update active button
-    document.querySelectorAll('[data-variable-filter]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.variableFilter === filter);
-    });
-    
-    // Re-render variables
+    if (variableFilterContainer) {
+      variableFilterContainer.querySelectorAll('[data-variable-filter]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.variableFilter === filter);
+      });
+    }
     if (currentAnalysis) {
-      renderVariables(currentAnalysis.variables);
+      renderVariables((currentAnalysis.variables || []).slice(0, 100));
     }
   }
 
@@ -233,17 +228,14 @@ const TriggersVarsModule = (function() {
       showError('No analysis data to export');
       return;
     }
-
     try {
       const exportData = {
         timestamp: new Date().toISOString(),
         analysis: currentAnalysis,
         filters: currentFilters
       };
-
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      
       const a = document.createElement('a');
       a.href = url;
       a.download = `gtm-analysis-${new Date().toISOString().split('T')[0]}.json`;
@@ -251,7 +243,6 @@ const TriggersVarsModule = (function() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
       console.log('✅ Analysis exported successfully');
     } catch (error) {
       console.error('❌ Error exporting analysis:', error);
@@ -264,11 +255,8 @@ const TriggersVarsModule = (function() {
       showError('No analysis data available');
       return;
     }
-
     const { consentDependencies, tags } = currentAnalysis;
-    
     let message = 'Consent Dependencies:\n\n';
-    
     if (consentDependencies && consentDependencies.length > 0) {
       consentDependencies.forEach(dep => {
         message += `• ${dep.tag}: ${dep.consentType}\n`;
@@ -276,23 +264,17 @@ const TriggersVarsModule = (function() {
     } else {
       message += 'No explicit consent dependencies found.\n\n';
     }
-
     message += '\nTag Consent Requirements:\n';
     tags.forEach(tag => {
       message += `• ${tag.name}: ${tag.consentType} (${tag.allowed ? 'Allowed' : 'Blocked'})\n`;
     });
-
     alert(message);
   }
 
   function showLoading() {
-    const containers = ['triggerList', 'variableList', 'mappingList'];
-    containers.forEach(id => {
-      const container = document.getElementById(id);
-      if (container) {
-        container.innerHTML = '<div class="loading">Loading...</div>';
-      }
-    });
+    if (triggerList) triggerList.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    if (variableList) variableList.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    if (mappingList) mappingList.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
   }
 
   function hideLoading() {
@@ -301,7 +283,6 @@ const TriggersVarsModule = (function() {
 
   function showError(message) {
     console.error('❌ Error:', message);
-    // You could implement a more sophisticated error display here
     alert('Error: ' + message);
   }
 

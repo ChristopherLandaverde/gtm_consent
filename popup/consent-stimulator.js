@@ -1,6 +1,9 @@
 // consent-simulator.js - Fixed UI update flow
 const ConsentSimulator = (function() {
   let contentScriptInterface = null;
+  // Cache DOM elements
+  let applyBtn = null;
+  let consentToggles = null;
 
   // Consent presets configuration  
   const CONSENT_PRESETS = {
@@ -64,12 +67,22 @@ const ConsentSimulator = (function() {
   function initialize(contentInterface) {
     console.log('⚙️ Initializing ConsentSimulator...');
     contentScriptInterface = contentInterface;
-    
+    applyBtn = document.getElementById('applyConsent');
+    consentToggles = document.querySelectorAll('.consent-select');
     initializeConsentPresets();
     initializeApplyButton();
-    
+    // Show loading spinner
+    showLoading();
     // Load current consent state on initialization
     loadCurrentConsentState();
+  }
+
+  function showLoading() {
+    const container = document.getElementById('consent-tab');
+    if (container) {
+      const toggles = container.querySelector('.consent-categories');
+      if (toggles) toggles.innerHTML = '';
+    }
   }
 
   async function loadCurrentConsentState() {
@@ -78,27 +91,30 @@ const ConsentSimulator = (function() {
       if (result && result.consentState) {
         console.log('📊 Loading current consent state:', result.consentState);
         updateConsentToggles(result.consentState);
-        
-        // Check if consent mode is actually working
         checkConsentModeStatus(result);
       } else {
         console.log('⚠️ No consent state available, using privacy-first defaults');
-        const defaultPreset = CONSENT_PRESETS['functional-only'];
-        updateConsentToggles(defaultPreset.settings);
-        
-        // Show that consent mode isn't available
+        showConsentModeUnavailable();
         showConsentModeStatus(false);
       }
     } catch (error) {
       console.error('❌ Error loading consent state:', error);
+      showConsentModeUnavailable();
       showConsentModeStatus(false);
+    }
+  }
+
+  function showConsentModeUnavailable() {
+    const container = document.getElementById('consent-tab');
+    if (container) {
+      const toggles = container.querySelector('.consent-categories');
+      if (toggles) toggles.innerHTML = '<div class="empty-state">Consent mode not available on this site</div>';
     }
   }
 
   function initializeConsentPresets() {
     const presetItems = document.querySelectorAll('.dropdown-item[data-preset]');
     console.log('🎛️ Found preset buttons:', presetItems.length);
-    
     presetItems.forEach(item => {
       item.addEventListener('click', function() {
         const preset = this.getAttribute('data-preset');
@@ -109,31 +125,24 @@ const ConsentSimulator = (function() {
   }
 
   function initializeApplyButton() {
-    const applyBtn = document.getElementById('applyConsent');
     if (!applyBtn) {
       console.error('❌ Apply consent button not found');
       return;
     }
-
     applyBtn.addEventListener('click', async function() {
       console.log('⚡ Apply consent clicked');
       this.disabled = true;
       this.textContent = '⚡ Applying...';
-      
       try {
         const settings = getConsentSettings();
         console.log('📤 Applying consent settings:', settings);
-        
         const result = await contentScriptInterface.sendMessage('applyConsent', settings);
-        
         if (result && result.success) {
           console.log('✅ Consent applied successfully');
           showNotification('✅ Consent applied!', 'success');
-          
-          // CRITICAL: Wait longer then force refresh the consent state
           setTimeout(async () => {
             await forceRefreshConsentState();
-          }, 1500); // Increased delay
+          }, 1500);
         } else {
           console.error('❌ Consent application failed:', result?.error);
           showNotification('❌ Failed: ' + (result?.error || 'Unknown error'), 'error');
