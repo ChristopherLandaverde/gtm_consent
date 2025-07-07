@@ -99,6 +99,10 @@ function initializeBasicTabs() {
       if (targetContent) {
         targetContent.classList.add('active');
       }
+      // Ensure consent mode status is always up to date
+      if (tabName === 'consent') {
+        checkGTMStatus();
+      }
     });
   });
 }
@@ -231,6 +235,7 @@ async function checkGTMStatus() {
 
 // FIXED: Better status display with loading states
 function updateStatusDisplay(result) {
+  
   const gtmStatus = document.getElementById('gtmStatus');
   const consentModeStatus = document.getElementById('consentModeStatus');
   

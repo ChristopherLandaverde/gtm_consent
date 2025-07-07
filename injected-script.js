@@ -141,18 +141,46 @@ if (window.ConsentInspector) {
     },
     
     detectConsentMode: function() {
-      // Check gtag function
-      if (window.gtag && typeof window.gtag === 'function') {
-        return true;
-      }
+      console.log('🔍 detectConsentMode called');
       
-      // Check for consent events in dataLayer
+      // Check for actual consent mode implementation, not just presence of gtag
       if (window.dataLayer && Array.isArray(window.dataLayer)) {
-        return window.dataLayer.some(item => 
+        // Look for consent events that actually change the state
+        const consentEvents = window.dataLayer.filter(item => 
           Array.isArray(item) && item[0] === 'consent'
         );
+        
+        console.log('🔍 Found consent events:', consentEvents);
+        
+        // Check if any consent events actually set non-default values
+        for (const event of consentEvents) {
+          if (event[1] === 'default' || event[1] === 'update') {
+            const settings = event[2];
+            if (settings) {
+              // Check if any consent type is set to 'denied'
+              const hasDenied = Object.values(settings).some(value => value === 'denied');
+              if (hasDenied) {
+                console.log('🔍 Found actual consent mode with denied permissions');
+                return true;
+              }
+            }
+          }
+        }
+        
+        // If we have consent events but all are 'granted', it's not real consent mode
+        if (consentEvents.length > 0) {
+          console.log('🔍 Found consent events but all permissions are granted - not real consent mode');
+          return false;
+        }
       }
       
+      // Check if gtag exists but no consent events - likely not using consent mode
+      if (window.gtag && typeof window.gtag === 'function') {
+        console.log('🔍 gtag exists but no consent events found - not using consent mode');
+        return false;
+      }
+      
+      console.log('🔍 No consent mode detected');
       return false;
     },
     
