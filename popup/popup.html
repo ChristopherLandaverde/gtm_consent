@@ -19,18 +19,22 @@
     </div>
   </div>
 
-  <div class="tabs">
-    <button class="tab-button active" data-tab="tags">Tags</button>
-    <button class="tab-button" data-tab="consent">Consent</button>
-    <button class="tab-button" data-tab="events">Event Log</button>
-    <button class="tab-button" data-tab="triggers-vars">Triggers & Variables</button>
-    <button class="tab-button" data-tab="monitoring">
-      Monitoring 
-      <span id="alertBadge" class="alert-badge" style="display: none;">0</span>
-    </button>
-
-    <button class="tab-button" data-tab="iab-tcf">IAB TCF</button>
-    <button class="tab-button" data-tab="qa">QA Tests</button>
+  <!-- Add left/right arrow buttons for tab navigation -->
+  <div class="tabs-container">
+    <button class="tab-arrow left" aria-label="Scroll left" tabindex="0">&#8592;</button>
+    <div class="tabs">
+      <button class="tab-button active" data-tab="tags">Tags</button>
+      <button class="tab-button" data-tab="consent">Consent</button>
+      <button class="tab-button" data-tab="events">Event Log</button>
+      <button class="tab-button" data-tab="triggers-vars">Triggers & Variables</button>
+      <button class="tab-button" data-tab="monitoring">
+        Monitoring 
+        <span id="alertBadge" class="alert-badge" style="display: none;">0</span>
+      </button>
+      <button class="tab-button" data-tab="iab-tcf">IAB TCF</button>
+      <button class="tab-button" data-tab="qa">QA Tests</button>
+    </div>
+    <button class="tab-arrow right" aria-label="Scroll right" tabindex="0">&#8594;</button>
   </div>
 
   <!-- Consent Tab -->
@@ -146,6 +150,8 @@
         <button class="filter-btn" data-trigger-filter="custom-event">Custom Event</button>
         <button class="filter-btn" data-trigger-filter="consent">Consent</button>
         <button class="filter-btn" data-trigger-filter="e-commerce">E-commerce</button>
+        <button class="filter-btn" data-trigger-filter="user-engagement">User Engagement</button>
+        <button class="filter-btn" data-trigger-filter="user-interaction">User Interaction</button>
       </div>
       <div class="trigger-list" id="triggerList">
         <div class="trigger-item empty-state">No triggers detected...</div>
@@ -160,6 +166,7 @@
         <button class="filter-btn" data-variable-filter="config">Config</button>
         <button class="filter-btn" data-variable-filter="custom">Custom</button>
         <button class="filter-btn" data-variable-filter="measurement">Measurement</button>
+        <button class="filter-btn" data-variable-filter="consent">Consent</button>
       </div>
       <div class="variable-list" id="variableList">
         <div class="variable-item empty-state">No variables detected...</div>
@@ -204,10 +211,20 @@
       </div>
     </div>
   </div>
+  
+  <!-- Alerts Section -->
+  <div id="alertsContainer" style="display: none;">
+    <h3>Active Alerts</h3>
+    <div class="alerts-list" id="alertsList">
+      <!-- Alerts will be populated here -->
+    </div>
+  </div>
+  
   <div class="action-buttons">
     <button id="startMonitoring" class="action-button primary">Start Monitoring</button>
     <button id="stopMonitoring" class="action-button" style="display: none;">Stop Monitoring</button>
     <button id="validateCompliance" class="action-button">Run Check</button>
+    <button id="clearAlerts" class="action-button">Clear Alerts</button>
   </div>
 </div>
 

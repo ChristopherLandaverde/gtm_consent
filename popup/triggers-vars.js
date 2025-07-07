@@ -98,21 +98,36 @@ const TriggersVarsModule = (function() {
       <div class="trigger-item">
         <div class="trigger-header">
           <span class="trigger-name">${escapeHtml(trigger.name)}</span>
-          <span class="trigger-type">${escapeHtml(trigger.type || 'unknown')}</span>
+          <span class="trigger-type ${trigger.type}">${getTriggerTypeLabel(trigger.type)}</span>
         </div>
         <div class="trigger-details">
-          <strong>Event:</strong> ${escapeHtml(trigger.event || 'N/A')}<br>
-          <strong>Source:</strong> ${escapeHtml(trigger.source || 'unknown')}<br>
-          ${trigger.timestamp ? `<strong>Time:</strong> ${new Date(trigger.timestamp).toLocaleTimeString()}<br>` : ''}
-          ${trigger.dataLayerIndex !== undefined ? `<strong>DataLayer Index:</strong> ${trigger.dataLayerIndex}<br>` : ''}
+          ${trigger.description ? `<div class="trigger-description">${escapeHtml(trigger.description)}</div>` : ''}
+          <div class="trigger-meta">
+            <span class="trigger-source">Source: ${escapeHtml(trigger.source)}</span>
+            ${trigger.dataLayerIndex !== undefined ? `<span class="trigger-index">Index: ${trigger.dataLayerIndex}</span>` : ''}
+            ${trigger.timestamp ? `<span class="trigger-time">${new Date(trigger.timestamp).toLocaleTimeString()}</span>` : ''}
+          </div>
         </div>
         ${trigger.consentType ? `
           <div class="trigger-consent ${trigger.consentType}">
-            <strong>Consent Required:</strong> ${trigger.consentType.replace('_', ' ')}
+            <span class="consent-label">Consent Required:</span>
+            <span class="consent-type">${trigger.consentType.replace('_', ' ')}</span>
           </div>
         ` : ''}
       </div>
     `).join('');
+  }
+
+  function getTriggerTypeLabel(type) {
+    const labels = {
+      'page-view': 'Page View',
+      'custom-event': 'Custom Event',
+      'consent': 'Consent',
+      'e-commerce': 'E-commerce',
+      'user-engagement': 'User Engagement',
+      'user-interaction': 'User Interaction'
+    };
+    return labels[type] || type;
   }
 
   function renderVariables(variables) {
@@ -134,7 +149,9 @@ const TriggersVarsModule = (function() {
           ${variable.container ? `<strong>Container:</strong> ${escapeHtml(variable.container)}<br>` : ''}
           ${variable.dataLayerIndex !== undefined ? `<strong>DataLayer Index:</strong> ${variable.dataLayerIndex}<br>` : ''}
         </div>
-        <div class="variable-value">${escapeHtml(variable.value)}</div>
+        <div class="variable-value">
+          <strong>Value:</strong> ${escapeHtml(variable.value || 'N/A')}
+        </div>
       </div>
     `).join('');
   }
@@ -163,16 +180,21 @@ const TriggersVarsModule = (function() {
     if (filter === 'all') return triggers;
     return triggers.filter(trigger => {
       const name = trigger.name.toLowerCase();
+      const type = trigger.type.toLowerCase();
       switch (filter) {
         case 'page-view':
-          return name.includes('page view') || name.includes('pageview');
+          return type === 'page-view' || name.includes('page view') || name.includes('pageview');
         case 'custom-event':
-          return name.includes('custom event') || name.includes('event');
+          return type === 'custom-event' || name.includes('custom event') || name.includes('event');
         case 'consent':
-          return name.includes('consent') || trigger.consentType;
+          return type === 'consent' || name.includes('consent') || trigger.consentType;
         case 'e-commerce':
-          return name.includes('e-commerce') || name.includes('commerce') || 
-                 (trigger.event && ['purchase', 'add_to_cart', 'view_item'].includes(trigger.event));
+          return type === 'e-commerce' || name.includes('e-commerce') || name.includes('commerce') || 
+                 (trigger.event && ['purchase', 'add_to_cart', 'view_item', 'begin_checkout', 'add_to_wishlist'].includes(trigger.event));
+        case 'user-engagement':
+          return type === 'user-engagement' || name.includes('login') || name.includes('signup') || name.includes('sign_up');
+        case 'user-interaction':
+          return type === 'user-interaction' || name.includes('scroll') || name.includes('click') || name.includes('form_submit');
         default:
           return true;
       }
@@ -192,7 +214,9 @@ const TriggersVarsModule = (function() {
         case 'custom':
           return type === 'custom' || type === 'gtag_set';
         case 'measurement':
-          return type === 'measurement_id' || type === 'container_id' || type === 'conversion_id';
+          return type === 'measurement_id' || type === 'container_id' || type === 'conversion_id' || type === 'measurement';
+        case 'consent':
+          return type === 'consent' || source === 'consent_mode';
         default:
           return true;
       }

@@ -76,10 +76,31 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeTabs() {
+  const tabsContainer = document.querySelector('.tabs');
+  const leftArrow = document.querySelector('.tab-arrow.left');
+  const rightArrow = document.querySelector('.tab-arrow.right');
   if (window.TabsManager) {
     window.TabsManager.initialize();
   } else {
     initializeBasicTabs();
+  }
+  // Arrow button scroll logic
+  function updateArrowVisibility() {
+    if (!tabsContainer) return;
+    const isScrollable = tabsContainer.scrollWidth > tabsContainer.offsetWidth + 2;
+    if (leftArrow) leftArrow.style.display = isScrollable ? '' : 'none';
+    if (rightArrow) rightArrow.style.display = isScrollable ? '' : 'none';
+  }
+  if (leftArrow && rightArrow && tabsContainer) {
+    leftArrow.addEventListener('click', () => {
+      tabsContainer.scrollBy({ left: -120, behavior: 'smooth' });
+    });
+    rightArrow.addEventListener('click', () => {
+      tabsContainer.scrollBy({ left: 120, behavior: 'smooth' });
+    });
+    tabsContainer.addEventListener('scroll', updateArrowVisibility);
+    window.addEventListener('resize', updateArrowVisibility);
+    setTimeout(updateArrowVisibility, 100);
   }
 }
 

@@ -390,80 +390,137 @@ if (window.ConsentInspector) {
         
         dataLayer.forEach((item, index) => {
           if (typeof item === 'object' && item !== null) {
-            // Detect triggers based on event patterns
-            if (item.event) {
+            // Skip internal GTM events
+            if (item['gtm.js'] || item['gtm.dom'] || item['gtm.load']) {
+              return; // Skip these internal GTM events
+            }
+            
+            // Detect meaningful user events
+            if (item.event && !item.event.startsWith('gtm.')) {
+              const eventName = item.event;
+              let triggerType = 'custom-event';
+              let consentType = this.getConsentTypeForEvent(eventName);
+              
+              // Categorize events better
+              if (['page_view', 'pageview'].includes(eventName)) {
+                triggerType = 'page-view';
+                consentType = 'analytics_storage';
+              } else if (['consent_update', 'consent_default'].includes(eventName)) {
+                triggerType = 'consent';
+                consentType = 'consent_update';
+              } else if (['purchase', 'add_to_cart', 'view_item', 'begin_checkout', 'add_to_wishlist'].includes(eventName)) {
+                triggerType = 'e-commerce';
+                consentType = 'analytics_storage';
+              } else if (['login', 'sign_up', 'signup'].includes(eventName)) {
+                triggerType = 'user-engagement';
+                consentType = 'analytics_storage';
+              } else if (['scroll', 'click', 'form_submit'].includes(eventName)) {
+                triggerType = 'user-interaction';
+                consentType = 'analytics_storage';
+              }
+              
               result.triggers.push({
-                name: `Event: ${item.event}`,
-                type: 'custom-event',
-                event: item.event,
+                name: eventName,
+                type: triggerType,
+                event: eventName,
                 source: 'dataLayer',
                 timestamp: Date.now(),
                 dataLayerIndex: index,
-                consentType: this.getConsentTypeForEvent(item.event)
+                consentType: consentType,
+                description: this.getEventDescription(eventName)
               });
             }
             
-            // Detect page view triggers
-            if (item['gtm.start'] || item.event === 'page_view') {
+            // Detect page view triggers (gtm.start)
+            if (item['gtm.start']) {
               result.triggers.push({
                 name: 'Page View',
                 type: 'page-view',
                 event: 'page_view',
                 source: 'dataLayer',
                 timestamp: Date.now(),
-                dataLayerIndex: index
-              });
-            }
-            
-            // Detect consent triggers
-            if (item.event === 'consent_update' || item.event === 'consent_default') {
-              result.triggers.push({
-                name: 'Consent Update',
-                type: 'consent',
-                event: item.event,
-                source: 'dataLayer',
-                timestamp: Date.now(),
                 dataLayerIndex: index,
-                consentType: 'consent_update'
-              });
-            }
-            
-            // Detect e-commerce triggers
-            if (item.event && ['purchase', 'add_to_cart', 'view_item', 'begin_checkout'].includes(item.event)) {
-              result.triggers.push({
-                name: `E-commerce: ${item.event}`,
-                type: 'e-commerce',
-                event: item.event,
-                source: 'dataLayer',
-                timestamp: Date.now(),
-                dataLayerIndex: index,
-                consentType: 'analytics_storage'
+                description: 'Page load event triggered by GTM'
               });
             }
           }
         });
+        
+        // Remove duplicate triggers based on event and type
+        const seenTriggers = new Set();
+        result.triggers = result.triggers.filter(trigger => {
+          const key = `${trigger.type}-${trigger.event}`;
+          if (seenTriggers.has(key)) {
+            return false;
+          }
+          seenTriggers.add(key);
+          return true;
+        });
       }
+      
+      // Helper function to get event descriptions
+      const getEventDescription = (eventName) => {
+        const descriptions = {
+          'page_view': 'User viewed a page',
+          'pageview': 'User viewed a page',
+          'consent_update': 'User updated consent preferences',
+          'consent_default': 'Default consent state set',
+          'purchase': 'User completed a purchase',
+          'add_to_cart': 'User added item to cart',
+          'view_item': 'User viewed a product',
+          'begin_checkout': 'User started checkout process',
+          'add_to_wishlist': 'User added item to wishlist',
+          'login': 'User logged in',
+          'sign_up': 'User signed up',
+          'signup': 'User signed up',
+          'scroll': 'User scrolled on page',
+          'click': 'User clicked on element',
+          'form_submit': 'User submitted a form'
+        };
+        return descriptions[eventName] || 'Custom user event';
+      };
       
       // Detect variables from dataLayer and GTM
       if (window.dataLayer && Array.isArray(window.dataLayer)) {
         const dataLayer = window.dataLayer;
         
-        // Extract variables from dataLayer items
+        // Extract meaningful variables from dataLayer items
         dataLayer.forEach((item, index) => {
           if (typeof item === 'object' && item !== null) {
             Object.keys(item).forEach(key => {
-              if (key !== 'event' && key !== 'gtm.start' && key !== 'gtm.uniqueEventId') {
-                result.variables.push({
-                  name: key,
-                  type: 'datalayer',
-                  value: JSON.stringify(item[key]),
-                  source: 'dataLayer',
-                  dataType: typeof item[key],
-                  dataLayerIndex: index
-                });
+              // Skip internal GTM keys and event keys
+              if (key !== 'event' && key !== 'gtm.start' && key !== 'gtm.uniqueEventId' && 
+                  key !== 'gtm.js' && key !== 'gtm.dom' && key !== 'gtm.load') {
+                
+                const value = item[key];
+                const dataType = typeof value;
+                
+                // Only add meaningful variables (skip empty/null values)
+                if (value !== null && value !== undefined && value !== '') {
+                  result.variables.push({
+                    name: key,
+                    type: 'datalayer',
+                    value: dataType === 'object' ? JSON.stringify(value).substring(0, 100) + (JSON.stringify(value).length > 100 ? '...' : '') : String(value),
+                    source: 'dataLayer',
+                    dataType: dataType,
+                    dataLayerIndex: index,
+                    rawValue: value
+                  });
+                }
               }
             });
           }
+        });
+        
+        // Remove duplicates based on name and value
+        const seen = new Set();
+        result.variables = result.variables.filter(variable => {
+          const key = `${variable.name}-${variable.value}`;
+          if (seen.has(key)) {
+            return false;
+          }
+          seen.add(key);
+          return true;
         });
       }
       
@@ -494,6 +551,18 @@ if (window.ConsentInspector) {
                 container: containerId
               });
             }
+            
+            // Add GTM container object info
+            if (container) {
+              result.variables.push({
+                name: 'GTM Container Object',
+                type: 'config',
+                value: 'Available',
+                source: 'google_tag_manager',
+                dataType: 'object',
+                container: containerId
+              });
+            }
           }
         });
       }
@@ -507,6 +576,45 @@ if (window.ConsentInspector) {
           source: 'gtag',
           dataType: 'function'
         });
+        
+        // Detect gtag configuration ID if available
+        if (window.gtag && typeof window.gtag === 'function') {
+          try {
+            // Try to detect GA4 measurement ID from common patterns
+            const scripts = document.querySelectorAll('script');
+            scripts.forEach(script => {
+              const content = script.textContent || script.innerHTML;
+              const gaMatch = content.match(/G-[A-Z0-9]{10}/);
+              if (gaMatch) {
+                result.variables.push({
+                  name: 'GA4 Measurement ID',
+                  type: 'measurement',
+                  value: gaMatch[0],
+                  source: 'gtag',
+                  dataType: 'string'
+                });
+              }
+            });
+          } catch (error) {
+            console.log('Could not detect GA4 measurement ID');
+          }
+        }
+      }
+      
+      // Detect consent mode variables
+      if (window.gtag) {
+        const consentState = this.getCurrentConsentState();
+        if (consentState && Object.keys(consentState).length > 0) {
+          Object.entries(consentState).forEach(([key, value]) => {
+            result.variables.push({
+              name: `Consent: ${key}`,
+              type: 'consent',
+              value: value,
+              source: 'consent_mode',
+              dataType: 'string'
+            });
+          });
+        }
       }
       
       // Create tag-trigger mappings

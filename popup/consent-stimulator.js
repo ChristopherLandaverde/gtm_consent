@@ -227,27 +227,17 @@ const ConsentSimulator = (function() {
   }
 
   function updateConsentToggles(consentState) {
-    console.log('🔄 Updating consent toggles with state:', consentState);
-    
-    for (const [key, value] of Object.entries(consentState)) {
-      const element = document.getElementById(key);
-      if (element) {
-        const oldValue = element.value;
-        element.value = value;
-        
-        console.log(`✅ Updated ${key}: ${oldValue} → ${value}`);
-        
-        // Add visual feedback for ANY change (not just different values)
-        element.style.backgroundColor = value === 'granted' ? '#d4edda' : '#f8d7da';
-        element.style.transition = 'background-color 0.3s ease';
-        
-        setTimeout(() => {
-          element.style.backgroundColor = '';
-        }, 2000);
-      } else {
-        console.warn(`⚠️ Element not found for ${key}`);
+    const container = document.getElementById('consent-tab');
+    if (!container) return;
+    const toggles = container.querySelectorAll('.consent-select');
+    if (!toggles || toggles.length === 0) return;
+    Object.keys(consentState).forEach(key => {
+      const select = container.querySelector(`.consent-select[name="${key}"]`);
+      if (select) {
+        select.value = consentState[key];
       }
-    }
+      // If not found, just skip silently (no warning)
+    });
   }
 
   function showNotification(message, type = 'info') {

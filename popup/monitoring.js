@@ -2,6 +2,7 @@
 const MonitoringModule = (function() {
   let isMonitoring = false;
   let monitoringInterval = null;
+  let currentAlerts = [];
   let currentData = {
     status: 'Inactive',
     cmp: 'None',
@@ -24,6 +25,7 @@ const MonitoringModule = (function() {
     const startBtn = document.getElementById('startMonitoring');
     const stopBtn = document.getElementById('stopMonitoring');
     const validateBtn = document.getElementById('validateCompliance');
+    const clearAlertsBtn = document.getElementById('clearAlerts');
     
     if (startBtn) {
       startBtn.addEventListener('click', startMonitoring);
@@ -36,6 +38,10 @@ const MonitoringModule = (function() {
     if (validateBtn) {
       validateBtn.addEventListener('click', validateCompliance);
     }
+    
+    if (clearAlertsBtn) {
+      clearAlertsBtn.addEventListener('click', clearAlerts);
+    }
   }
 
   function startMonitoring() {
@@ -47,6 +53,7 @@ const MonitoringModule = (function() {
     // Update UI
     updateMonitoringStatus('Active');
     toggleMonitoringButtons(true);
+    updateHeaderStatus(true);
     
     // Start monitoring interval (every 3 seconds)
     monitoringInterval = setInterval(async () => {
@@ -54,7 +61,7 @@ const MonitoringModule = (function() {
         await updateMonitoringData();
       } catch (error) {
         console.error('❌ Monitoring error:', error);
-        addAlert('Monitoring error: ' + error.message);
+        addAlert('Monitoring error: ' + error.message, 'error');
       }
     }, 3000);
     
@@ -77,6 +84,7 @@ const MonitoringModule = (function() {
     // Update UI
     updateMonitoringStatus('Inactive');
     toggleMonitoringButtons(false);
+    updateHeaderStatus(false);
   }
 
   async function updateMonitoringData() {
@@ -95,7 +103,7 @@ const MonitoringModule = (function() {
         status: isMonitoring ? 'Active' : 'Inactive',
         cmp: detectCMP(),
         tags: Array.isArray(tagStatus) ? tagStatus.length : 0,
-        alerts: currentData.alerts, // Keep existing alerts
+        alerts: currentAlerts.length,
         lastUpdate: new Date(),
         gtmStatus: gtmStatus,
         tagStatus: tagStatus,
@@ -110,7 +118,7 @@ const MonitoringModule = (function() {
       
     } catch (error) {
       console.error('❌ Error updating monitoring data:', error);
-      addAlert('Failed to update monitoring data: ' + error.message);
+      addAlert('Failed to update monitoring data: ' + error.message, 'error');
     }
   }
 
@@ -125,23 +133,28 @@ const MonitoringModule = (function() {
   }
 
   function checkForAlerts(gtmStatus, tagStatus, consentState) {
-    const alerts = [];
+    const newAlerts = [];
     
     // Check GTM status
     if (!gtmStatus || !gtmStatus.hasGTM) {
-      alerts.push('GTM not detected on page');
+      newAlerts.push({ message: 'GTM not detected on page', type: 'error', severity: 'high' });
     }
     
     // Check consent mode
     if (gtmStatus && gtmStatus.hasGTM && !gtmStatus.hasConsentMode) {
-      alerts.push('GTM detected but Consent Mode not enabled');
+      newAlerts.push({ message: 'GTM detected but Consent Mode not enabled', type: 'warning', severity: 'medium' });
     }
     
     // Check tag blocking
     if (Array.isArray(tagStatus)) {
       const blockedTags = tagStatus.filter(tag => !tag.allowed);
       if (blockedTags.length > 0) {
-        alerts.push(`${blockedTags.length} tags are blocked due to consent`);
+        newAlerts.push({ 
+          message: `${blockedTags.length} tags are blocked due to consent`, 
+          type: 'info', 
+          severity: 'low',
+          details: blockedTags.map(tag => tag.name).join(', ')
+        });
       }
     }
     
@@ -149,22 +162,116 @@ const MonitoringModule = (function() {
     if (consentState) {
       const deniedConsents = Object.entries(consentState).filter(([key, value]) => value === 'denied');
       if (deniedConsents.length > 0) {
-        alerts.push(`${deniedConsents.length} consent categories are denied`);
+        newAlerts.push({ 
+          message: `${deniedConsents.length} consent categories are denied`, 
+          type: 'warning', 
+          severity: 'medium',
+          details: deniedConsents.map(([key]) => key).join(', ')
+        });
       }
     }
     
-    // Update alerts count
-    currentData.alerts = alerts.length;
+    // Update alerts
+    currentAlerts = newAlerts;
+    currentData.alerts = currentAlerts.length;
+    
+    // Update alert display
+    updateAlertsDisplay();
+    updateAlertBadge();
     
     // Log alerts
-    if (alerts.length > 0) {
-      console.log('⚠️ Monitoring alerts:', alerts);
+    if (currentAlerts.length > 0) {
+      console.log('⚠️ Monitoring alerts:', currentAlerts);
     }
   }
 
-  function addAlert(message) {
+  function addAlert(message, type = 'info') {
+    const alert = {
+      message: message,
+      type: type,
+      severity: type === 'error' ? 'high' : type === 'warning' ? 'medium' : 'low',
+      timestamp: new Date()
+    };
+    
+    currentAlerts.push(alert);
+    currentData.alerts = currentAlerts.length;
+    
+    updateAlertsDisplay();
+    updateAlertBadge();
+    
     console.log('⚠️ Alert:', message);
-    // You could implement a more sophisticated alert system here
+  }
+
+  function clearAlerts() {
+    currentAlerts = [];
+    currentData.alerts = 0;
+    updateAlertsDisplay();
+    updateAlertBadge();
+  }
+
+  function updateAlertsDisplay() {
+    const alertsContainer = document.getElementById('alertsContainer');
+    const alertsList = document.getElementById('alertsList');
+    
+    if (!alertsContainer || !alertsList) return;
+    
+    if (currentAlerts.length === 0) {
+      alertsContainer.style.display = 'none';
+      return;
+    }
+    
+    alertsContainer.style.display = 'block';
+    
+    alertsList.innerHTML = currentAlerts.map(alert => `
+      <div class="alert-item ${alert.type}">
+        <div class="alert-severity ${alert.severity}">${getSeverityIcon(alert.severity)}</div>
+        <div class="alert-message">
+          <div class="alert-text">${alert.message}</div>
+          ${alert.details ? `<div class="alert-details">${alert.details}</div>` : ''}
+          <div class="alert-time">${alert.timestamp.toLocaleTimeString()}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function getSeverityIcon(severity) {
+    switch (severity) {
+      case 'high': return '🔴';
+      case 'medium': return '🟡';
+      case 'low': return '🔵';
+      default: return 'ℹ️';
+    }
+  }
+
+  function updateAlertBadge() {
+    const alertBadge = document.getElementById('alertBadge');
+    if (alertBadge) {
+      if (currentAlerts.length > 0) {
+        alertBadge.textContent = currentAlerts.length;
+        alertBadge.style.display = 'inline-block';
+      } else {
+        alertBadge.style.display = 'none';
+      }
+    }
+  }
+
+  function updateHeaderStatus(active) {
+    const monitoringStatus = document.getElementById('monitoringStatus');
+    const monitoringIndicator = document.getElementById('monitoringIndicator');
+    
+    if (monitoringStatus) {
+      monitoringStatus.style.display = 'block';
+    }
+    
+    if (monitoringIndicator) {
+      if (active) {
+        monitoringIndicator.textContent = '🔴 ON';
+        monitoringIndicator.className = 'status-active';
+      } else {
+        monitoringIndicator.textContent = '⚪ OFF';
+        monitoringIndicator.className = 'status-inactive';
+      }
+    }
   }
 
   function updateDisplay() {
@@ -301,7 +408,8 @@ const MonitoringModule = (function() {
     init: init,
     startMonitoring: startMonitoring,
     stopMonitoring: stopMonitoring,
-    validateCompliance: validateCompliance
+    validateCompliance: validateCompliance,
+    clearAlerts: clearAlerts
   };
 })();
 
