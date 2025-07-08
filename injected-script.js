@@ -384,6 +384,28 @@ if (window.ConsentInspector) {
         timestamp: Date.now()
       };
       
+      // Helper function to get event descriptions
+      const getEventDescription = (eventName) => {
+        const descriptions = {
+          'page_view': 'User viewed a page',
+          'pageview': 'User viewed a page',
+          'consent_update': 'User updated consent preferences',
+          'consent_default': 'Default consent state set',
+          'purchase': 'User completed a purchase',
+          'add_to_cart': 'User added item to cart',
+          'view_item': 'User viewed a product',
+          'begin_checkout': 'User started checkout process',
+          'add_to_wishlist': 'User added item to wishlist',
+          'login': 'User logged in',
+          'sign_up': 'User signed up',
+          'signup': 'User signed up',
+          'scroll': 'User scrolled on page',
+          'click': 'User clicked on element',
+          'form_submit': 'User submitted a form'
+        };
+        return descriptions[eventName] || 'Custom user event';
+      };
+      
       // Detect triggers from dataLayer events
       if (window.dataLayer && Array.isArray(window.dataLayer)) {
         const dataLayer = window.dataLayer;
@@ -427,7 +449,7 @@ if (window.ConsentInspector) {
                 timestamp: Date.now(),
                 dataLayerIndex: index,
                 consentType: consentType,
-                description: this.getEventDescription(eventName)
+                description: getEventDescription(eventName)
               });
             }
             
@@ -457,28 +479,6 @@ if (window.ConsentInspector) {
           return true;
         });
       }
-      
-      // Helper function to get event descriptions
-      const getEventDescription = (eventName) => {
-        const descriptions = {
-          'page_view': 'User viewed a page',
-          'pageview': 'User viewed a page',
-          'consent_update': 'User updated consent preferences',
-          'consent_default': 'Default consent state set',
-          'purchase': 'User completed a purchase',
-          'add_to_cart': 'User added item to cart',
-          'view_item': 'User viewed a product',
-          'begin_checkout': 'User started checkout process',
-          'add_to_wishlist': 'User added item to wishlist',
-          'login': 'User logged in',
-          'sign_up': 'User signed up',
-          'signup': 'User signed up',
-          'scroll': 'User scrolled on page',
-          'click': 'User clicked on element',
-          'form_submit': 'User submitted a form'
-        };
-        return descriptions[eventName] || 'Custom user event';
-      };
       
       // Detect variables from dataLayer and GTM
       if (window.dataLayer && Array.isArray(window.dataLayer)) {
